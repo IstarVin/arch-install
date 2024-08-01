@@ -1,13 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hi</title>
-  </head>
-  <body>
-    <script>
-      window.location.href = window.location.origin+'/install.sh'
-    </script>
-  </body>
-</html>
+#!/bin/bash
+
+sed -i 's/^#ParallelDownloads = 5/ParallelDownloads = 5/' /etc/pacman.conf
+sed -i 's/^#NTP=/NTP=time.google.com/' /etc/systemd/timesyncd.conf
+
+systemctl restart systemd-timesyncd
+
+reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
+
+archinstall
