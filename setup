@@ -1,0 +1,8 @@
+#!/bin/bash
+
+git clone https://github.com/IstarVin/dots-hyprland /tmp/dots-hyprland
+cwd=$(pwd)
+cd /tmp/dots-hyprland
+bash install.sh
+cd $cwd
+rm -rf /tmp/dots-hyprland
