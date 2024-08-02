@@ -142,7 +142,4 @@ arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=Archer --efi-d
 perl -pi -e "s/GRUB_TIMEOUT=\K\d+/0/" /mnt/etc/default/grub
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
 
-curl https://install.alvinjay.site/setup2.sh -o /tmp/setup.sh
-chmod +x /tmp/setup.sh
-
-arch-chroot /mnt /tmp/setup.sh
+arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
