@@ -134,7 +134,7 @@ else
   mount ${part_boot} /mnt${efi_dir} --mkdir
 fi
 
-arch-chroot /mnt dracut --regeneate-all
+arch-chroot /mnt dracut --regenerate-all
 arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=Archer --efi-directory=${efi_dir}
 perl -pi -e "s/GRUB_TIMEOUT=\K\d+/0/" /mnt/etc/default/grub
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
