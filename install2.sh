@@ -1,5 +1,8 @@
 set -e
 
+# Ensure /mnt is unmounted
+umount -A --recursive /mnt
+
 # Print available disks
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print $2"|"$3}'
 
@@ -35,7 +38,12 @@ sed -i 's/^#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
 sed -i 's/^#Color/Color/' /etc/pacman.conf
 
 ## Configure Mirrors
+echo "Updating mirrors using reflector"
 reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
+
+## Setup pacman
+pacman-key --init
+pacman -S archlinux-keyring --noconfirm
 
 ## Setup disk
 device=/dev/${disk}
@@ -128,3 +136,5 @@ fi
 arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=Archer --efi-directory=${efi_dir}
 perl -pi -e "s/GRUB_TIMEOUT=\K\d+/0/" /mnt/etc/default/grub
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+
+arch-chroot /mnt <(curl -s https://install.alvinjay.site/setup2.sh)
