@@ -102,7 +102,7 @@ else
 fi
 
 ## Install Arch
-pacstrap /mnt dracut iptables-nft
+pacstrap /mnt iptables-nft
 pacstrap /mnt base linux-zen linux-firmware git vim neovim sudo grub efibootmgr networkmanager $ucode base-devel
 
 ## Setup fstab
