@@ -1,7 +1,10 @@
 set -e
 
 # Ensure /mnt is unmounted
-umount -q -A --recursive /mnt
+
+if lsblk | grep /mnt >/dev/null 2>&1; then
+  umount -q -A --recursive /mnt
+fi
 
 # Print available disks
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print $2"|"$3}'
