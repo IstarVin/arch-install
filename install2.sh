@@ -1,7 +1,7 @@
 set -e
 
 # Ensure /mnt is unmounted
-umount -A --recursive /mnt
+umount -q -A --recursive /mnt
 
 # Print available disks
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print $2"|"$3}'
@@ -42,8 +42,8 @@ echo "Updating mirrors using reflector"
 reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
 ## Setup pacman
-pacman-key --init
-pacman -Sy archlinux-keyring --noconfirm
+# pacman-key --init
+# pacman -Sy archlinux-keyring --noconfirm
 
 ## Setup disk
 device=/dev/${disk}
