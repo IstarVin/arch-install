@@ -42,7 +42,8 @@ echo "Updating mirrors using reflector"
 reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
 ## Setup pacman
-# pacman-key --init
+pacman-key --init
+pacman-key --populate
 # pacman -Sy archlinux-keyring --noconfirm
 
 ## Setup disk
@@ -99,6 +100,7 @@ else
 fi
 
 ## Install Arch
+pacstrap /mnt dracut iptables-nft
 pacstrap /mnt base linux linux-firmware git vim neovim sudo grub efibootmgr networkmanager $ucode base-devel
 
 ## Setup fstab
@@ -137,4 +139,7 @@ arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=Archer --efi-d
 perl -pi -e "s/GRUB_TIMEOUT=\K\d+/0/" /mnt/etc/default/grub
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
 
-arch-chroot /mnt <(curl -s https://install.alvinjay.site/setup2.sh)
+curl https://install.alvinjay.site/setup2.sh -o /tmp/setup.sh
+chmod +x /tmp/setup.sh
+
+arch-chroot /mnt /usr/bin/runuser -u $username -- /tmp/setup.sh
