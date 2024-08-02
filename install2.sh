@@ -89,7 +89,6 @@ fi
 
 # Determine intel or amd
 ucode=""
-lspcu | grep "Model name:" | grep "AMD"
 if lscpu | grep "Model name:" | grep AMD >/dev/null 2>&1; then
   ucode="amd-ucode"
 elif lscpu | grep "Model name:" | grep Intel >/dev/null 2>&1; then
