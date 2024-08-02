@@ -43,7 +43,7 @@ reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
 ## Setup pacman
 pacman-key --init
-pacman -S archlinux-keyring --noconfirm
+pacman -Sy archlinux-keyring --noconfirm
 
 ## Setup disk
 device=/dev/${disk}
