@@ -34,9 +34,9 @@ done
 
 while :; do
     echo
-    read -s -p "Enter root password: " luksPassword
+    read -s -p "Enter luks password: " luksPassword
     echo
-    read -s -p "Enter root password: " luksPassword2
+    read -s -p "Enter luks password: " luksPassword2
     echo
     [[ $luksPassword != $luksPassword2 ]] || break
     echo "error try again"
@@ -56,26 +56,26 @@ reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 pacman-key --init
 pacman-key --populate
 
-## Add CachyOS Repo
-pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
-pacman-key --lsign-key F3B607488DB35A47
-pacman -U 'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst' \
-    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-mirrorlist-18-1-any.pkg.tar.zst' \
-    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v3-mirrorlist-18-1-any.pkg.tar.zst' \
-    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v4-mirrorlist-6-1-any.pkg.tar.zst' \
-    'https://mirror.cachyos.org/repo/x86_64/cachyos/pacman-6.1.0-7-x86_64.pkg.tar.zst'
-
-sed -i '/# after the header, and they will be used before the default mirrors./a\
-\
-#CachyOS Repos\
-[cachyos-v3]\
-Include = /etc/pacman.d/cachyos-v3-mirrorlist\
-[cachyos-core-v3]\
-Include = /etc/pacman.d/cachyos-v3-mirrorlist\
-[cachyos-extra-v3]\
-Include = /etc/pacman.d/cachyos-v3-mirrorlist\
-[cachyos]\
-Include = /etc/pacman.d/cachyos-mirrorlist' /etc/pacman.conf
+### Add CachyOS Repo
+#pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
+#pacman-key --lsign-key F3B607488DB35A47
+#pacman -U 'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst' \
+#    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-mirrorlist-18-1-any.pkg.tar.zst' \
+#    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v3-mirrorlist-18-1-any.pkg.tar.zst' \
+#    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v4-mirrorlist-6-1-any.pkg.tar.zst' \
+#    'https://mirror.cachyos.org/repo/x86_64/cachyos/pacman-6.1.0-7-x86_64.pkg.tar.zst'
+#
+#sed -i '/# after the header, and they will be used before the default mirrors./a\
+#\
+##CachyOS Repos\
+#[cachyos-v3]\
+#Include = /etc/pacman.d/cachyos-v3-mirrorlist\
+#[cachyos-core-v3]\
+#Include = /etc/pacman.d/cachyos-v3-mirrorlist\
+#[cachyos-extra-v3]\
+#Include = /etc/pacman.d/cachyos-v3-mirrorlist\
+#[cachyos]\
+#Include = /etc/pacman.d/cachyos-mirrorlist' /etc/pacman.conf
 
 ## Setup disk
 device=/dev/${disk}
@@ -122,7 +122,7 @@ fi
 
 ## Install Arch
 pacstrap /mnt iptables-nft
-pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware git vim neovim sudo grub efibootmgr networkmanager $ucode base-devel
+pacstrap /mnt base linux linux-firmware git vim neovim sudo grub efibootmgr networkmanager $ucode base-devel
 
 ## Setup fstab
 genfstab -L /mnt >>/mnt/etc/fstab
