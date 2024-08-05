@@ -130,6 +130,9 @@ genfstab -L /mnt >>/mnt/etc/fstab
 ## Copy post install to new root
 cp /etc/pacman.conf /mnt/etc/pacman.conf -f
 
+## Copy mirrorlists
+cp /etc/pacman.d/*-mirrorlist /mnt/etc/pacman.d/ -f
+
 ## Setup users and password
 useradd -m -R /mnt ${username}
 usermod -R /mnt -c "$fullname" ${username}
