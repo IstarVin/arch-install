@@ -14,9 +14,9 @@ read -p "Enter username: " username
 read -p "Enter Full Name: " fullname
 
 while :; do
-    read -s -p "Enter user password: " password
+    read -s -r -p "Enter user password: " password
     echo
-    read -s -p "Enter user password again: " password2
+    read -s -r -p "Enter user password again: " password2
     echo
     [[ $password != $password2 ]] || break
     echo "error try again"
@@ -24,9 +24,9 @@ done
 
 while :; do
     echo
-    read -s -p "Enter root password: " rootPassword
+    read -s -r -p "Enter root password: " rootPassword
     echo
-    read -s -p "Enter root password: " rootPassword2
+    read -s -r -p "Enter root password: " rootPassword2
     echo
     [[ $rootPassword != $rootPassword2 ]] || break
     echo "error try again"
@@ -34,9 +34,9 @@ done
 
 while :; do
     echo
-    read -s -p "Enter luks password: " luksPassword
+    read -s -r -p "Enter luks password: " luksPassword
     echo
-    read -s -p "Enter luks password: " luksPassword2
+    read -s -r -p "Enter luks password: " luksPassword2
     echo
     [[ $luksPassword != $luksPassword2 ]] || break
     echo "error try again"
@@ -56,6 +56,8 @@ reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 pacman-key --init
 pacman-key --populate
 
+pacman -Sy arch-linux-keyring debugedit
+
 ## Add CachyOS Repo
 pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
 pacman-key --lsign-key F3B607488DB35A47
@@ -68,18 +70,20 @@ pacman -U 'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-202403
 sed -i '/# after the header, and they will be used before the default mirrors./a\
 \
 #CachyOS Repos\
-[cachyos-v3]\
-Include = /etc/pacman.d/cachyos-v3-mirrorlist\
 [cachyos-core-v3]\
 Include = /etc/pacman.d/cachyos-v3-mirrorlist\
 [cachyos-extra-v3]\
 Include = /etc/pacman.d/cachyos-v3-mirrorlist\
+[cachyos-v3]\
+Include = /etc/pacman.d/cachyos-v3-mirrorlist\
 [cachyos]\
 Include = /etc/pacman.d/cachyos-mirrorlist' /etc/pacman.conf
 
+pacman -Sy
+
 ## Setup disk
 device=/dev/${disk}
-wipefs --all ${device}
+wipefs --all "${device}"
 sgdisk --clear "${device}" --new 1::-512MiB "${device}" --new 2::0 --typecode 2:ef00 "${device}"
 sgdisk --change-name=1:primary --change-name=2:ESP "${device}"
 part_root=${device}1
@@ -87,8 +91,8 @@ part_boot=${device}2
 mkfs.vfat -n "EFI" -F 32 "${part_boot}"
 
 ## Setuo LUKS
-echo -n ${luksPassword} | cryptsetup luksFormat --pbkdf pbkdf2 "${part_root}"
-echo -n ${luksPassword} | cryptsetup luksOpen "${part_root}" root
+echo -n "${luksPassword}" | cryptsetup luksFormat --pbkdf pbkdf2 "${part_root}"
+echo -n "${luksPassword}" | cryptsetup luksOpen "${part_root}" root
 part_root_install=/dev/mapper/root
 
 mkfs.btrfs -fL btrfs ${part_root_install}
@@ -106,6 +110,8 @@ mount -o noatime,nodiratime,compress=zstd,subvol=@var ${part_root_install} /mnt/
 mount -o noatime,nodiratime,compress=zstd,subvol=@home ${part_root_install} /mnt/home
 mount -o noatime,nodiratime,compress=zstd,subvol=@snapshots ${part_root_install} /mnt/.snapshots
 
+mount "$part_boot" /mnt/boot
+
 pacstrap /mnt btrfs-progs
 # mount ${part_boot} /mnt/boot --mkdir
 
@@ -122,7 +128,9 @@ fi
 
 ## Install Arch
 pacstrap /mnt iptables-nft
-pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware git vim neovim sudo grub efibootmgr networkmanager $ucode base-devel
+pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware $ucode base-devel
+pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
+pacstrap /mnt git vim sudo grub efibootmgr networkmanager plymouth
 
 ## Setup fstab
 genfstab -L /mnt >>/mnt/etc/fstab
@@ -130,37 +138,30 @@ genfstab -L /mnt >>/mnt/etc/fstab
 ## Copy post install to new root
 cp /etc/pacman.conf /mnt/etc/pacman.conf -f
 
-## Copy mirrorlists
-cp /etc/pacman.d/*-mirrorlist /mnt/etc/pacman.d/ -f
-
 ## Setup users and password
-useradd -m -R /mnt ${username}
-usermod -R /mnt -c "$fullname" ${username}
+useradd -m -R /mnt "$username"
+usermod -R /mnt -c "$fullname" "$username"
 echo -n "${username}:${password}" | chpasswd -R /mnt
 echo -n "root:${rootPassword}" | chpasswd -R /mnt
-echo "${username} ALL=(ALL) ALL" >/mnt/etc/sudoers.d/00_${username}
+echo "${username} ALL=(ALL) ALL" >/mnt/etc/sudoers.d/00_"${username}"
 
-exit 0
+# exit 0
+arch-chroot /mnt bootctl install
 
-efi_dir="/efi"
-## Setup grub
-sed -i 's/#GRUB_ENABLE_CRYPTODISK/GRUB_ENABLE_CRYPTODISK' /etc/default/grub
-sed -i '/'
-## Setup initramfs
-cat <<EOF >/mnt/etc/mkinitcpio.conf
-MODULES=()
-BINARIES=()
-FILES=()
-HOOKS=(base udev autodetect keyboard keymap modconf block encrypt filesystems keyboard fsck)
+cat <<EOF >/mnt/boot/loader/loader.conf
+default  arch.conf
+timeout  0
+console-mode max
+editor   no
 EOF
-mount ${part_boot} /mnt${efi_dir}
-arch-chroot /mnt mkinitcpio -p linux
-device_uuid=$(blkid | grep ${part_root} | grep -oP ' UUID="\K[\w\d-]+')
-echo "GRUB_ENABLE_CRYPTODISK=y" >>/mnt/etc/default/grub
-perl -pi -e "s~GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet\K~ cryptdevice=UUID=${device_uuid}:root root=${part_root_install}~" /mnt/etc/default/grub
 
-arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=Archer --efi-directory=${efi_dir}
-perl -pi -e "s/GRUB_TIMEOUT=\K\d+/0/" /mnt/etc/default/grub
-arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+device_uuid=$(blkid | grep "${part_root}" | grep -oP ' UUID="\K[\w\d-]+')
+
+cat <<EOF >/mnt/boot/loader/entries/arch.conf
+title   Arch Linux
+linux   /vmlinuz-linux-cachyos
+initrd  /initramfs-linux-cachyos.img
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root quiet splash
+EOF
 
 arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
