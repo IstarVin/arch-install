@@ -56,15 +56,14 @@ reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 pacman-key --init
 pacman-key --populate
 
-pacman -Sy arch-linux-keyring debugedit
+pacman -Sy archlinux-keyring debugedit --noconfirm
 
 ## Add CachyOS Repo
 pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
 pacman-key --lsign-key F3B607488DB35A47
-pacman -U 'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst' \
+pacman -U --noconfirm 'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst' \
     'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-mirrorlist-18-1-any.pkg.tar.zst' \
     'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v3-mirrorlist-18-1-any.pkg.tar.zst' \
-    'https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v4-mirrorlist-6-1-any.pkg.tar.zst' \
     'https://mirror.cachyos.org/repo/x86_64/cachyos/pacman-6.1.0-7-x86_64.pkg.tar.zst'
 
 sed -i '/# after the header, and they will be used before the default mirrors./a\
@@ -110,6 +109,7 @@ mount -o noatime,nodiratime,compress=zstd,subvol=@var ${part_root_install} /mnt/
 mount -o noatime,nodiratime,compress=zstd,subvol=@home ${part_root_install} /mnt/home
 mount -o noatime,nodiratime,compress=zstd,subvol=@snapshots ${part_root_install} /mnt/.snapshots
 
+mkdir /mnt/boot -p
 mount "$part_boot" /mnt/boot
 
 pacstrap /mnt btrfs-progs
