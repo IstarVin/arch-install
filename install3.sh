@@ -129,7 +129,7 @@ fi
 pacstrap /mnt iptables-nft mkinitcpio
 pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware $ucode base-devel
 pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
-pacstrap /mnt git vim sudo grub efibootmgr networkmanager
+pacstrap /mnt git vim sudo efibootmgr networkmanager
 
 ## Setup fstab
 genfstab -U /mnt >>/mnt/etc/fstab
@@ -160,12 +160,12 @@ cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
 linux   /vmlinuz-linux-cachyos
 initrd  /initramfs-linux-cachyos.img
-options cryptdevice=UUID=$device_uuid:enc_root root=/dev/mapper/enc_root quiet rw
+options cryptdevice=UUID=$device_uuid:enc_root root=/dev/mapper/enc_root rootfstype=btrfs rootflags=subvol=@ quiet rw
 EOF
 
 # Setup mkinitcpio
-sed -i '/^HOOKS/s/block/& encrypt/' /etc/mkinitcpio.conf
-mkinitcpio -P
+sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
+arch-chroot /mnt mkinitcpio -P
 
 # Proceed to setup
 arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
