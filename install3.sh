@@ -1,7 +1,7 @@
 set -e
 
 # Ensure /mnt is unmounted
-if lsblk | grep /mnt >/dev/null 2>&1; then
+if lsblk | grep "/mnt$" >/dev/null 2>&1; then
     umount -q -A --recursive /mnt
 fi
 
@@ -9,16 +9,16 @@ fi
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print $2"|"$3}'
 
 # Enter necessary infos
-read -p "Enter disk name: " disk
-read -p "Enter username: " username
-read -p "Enter Full Name: " fullname
+read -p -r "Enter disk name: " disk
+read -p -r "Enter username: " username
+read -p -r "Enter Full Name: " fullname
 
 while :; do
     read -s -r -p "Enter user password: " password
     echo
     read -s -r -p "Enter user password again: " password2
     echo
-    [[ $password != $password2 ]] || break
+    [[ $password != "$password2" ]] || break
     echo "error try again"
 done
 
@@ -28,7 +28,7 @@ while :; do
     echo
     read -s -r -p "Enter root password: " rootPassword2
     echo
-    [[ $rootPassword != $rootPassword2 ]] || break
+    [[ $rootPassword != "$rootPassword2" ]] || break
     echo "error try again"
 done
 
@@ -38,7 +38,7 @@ while :; do
     echo
     read -s -r -p "Enter luks password: " luksPassword2
     echo
-    [[ $luksPassword != $luksPassword2 ]] || break
+    [[ $luksPassword != "$luksPassword2" ]] || break
     echo "error try again"
 done
 
@@ -90,7 +90,7 @@ part_boot=${device}2
 mkfs.vfat -n "EFI" -F 32 "${part_boot}"
 
 ## Setuo LUKS
-echo -n "${luksPassword}" | cryptsetup luksFormat --pbkdf pbkdf2 "${part_root}"
+echo -n "${luksPassword}" | cryptsetup luksFormat "${part_root}"
 echo -n "${luksPassword}" | cryptsetup luksOpen "${part_root}" root
 part_root_install=/dev/mapper/root
 
@@ -104,12 +104,11 @@ btrfs subvolume create /mnt/@snapshots
 
 umount /mnt
 mount -o noatime,nodiratime,compress=zstd,subvol=@ ${part_root_install} /mnt
-mkdir /mnt/{var,home,.snapshots}
+mkdir /mnt/{var,home,.snapshots,boot}
 mount -o noatime,nodiratime,compress=zstd,subvol=@var ${part_root_install} /mnt/var
 mount -o noatime,nodiratime,compress=zstd,subvol=@home ${part_root_install} /mnt/home
 mount -o noatime,nodiratime,compress=zstd,subvol=@snapshots ${part_root_install} /mnt/.snapshots
 
-mkdir /mnt/boot -p
 mount "$part_boot" /mnt/boot
 
 pacstrap /mnt btrfs-progs
@@ -127,10 +126,10 @@ else
 fi
 
 ## Install Arch
-pacstrap /mnt iptables-nft
+pacstrap /mnt iptables-nft mkinitcpio
 pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware $ucode base-devel
 pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
-pacstrap /mnt git vim sudo grub efibootmgr networkmanager plymouth
+pacstrap /mnt git vim sudo grub efibootmgr networkmanager
 
 ## Setup fstab
 genfstab -L /mnt >>/mnt/etc/fstab
@@ -161,7 +160,7 @@ cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
 linux   /vmlinuz-linux-cachyos
 initrd  /initramfs-linux-cachyos.img
-options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root quiet splash
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root quiet
 EOF
 
 arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
