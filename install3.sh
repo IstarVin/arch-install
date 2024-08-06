@@ -9,9 +9,9 @@ fi
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print $2"|"$3}'
 
 # Enter necessary infos
-read -p -r "Enter disk name: " disk
-read -p -r "Enter username: " username
-read -p -r "Enter Full Name: " fullname
+read -r -p "Enter disk name: " disk
+read -r -p "Enter username: " username
+read -r -p "Enter Full Name: " fullname
 
 while :; do
     read -s -r -p "Enter user password: " password
@@ -132,7 +132,7 @@ pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
 pacstrap /mnt git vim sudo grub efibootmgr networkmanager
 
 ## Setup fstab
-genfstab -L /mnt >>/mnt/etc/fstab
+genfstab -U /mnt >>/mnt/etc/fstab
 
 ## Copy post install to new root
 cp /etc/pacman.conf /mnt/etc/pacman.conf -f
@@ -144,7 +144,7 @@ echo -n "${username}:${password}" | chpasswd -R /mnt
 echo -n "root:${rootPassword}" | chpasswd -R /mnt
 echo "${username} ALL=(ALL) ALL" >/mnt/etc/sudoers.d/00_"${username}"
 
-# exit 0
+# Setup Systemd-boot
 arch-chroot /mnt bootctl install
 
 cat <<EOF >/mnt/boot/loader/loader.conf
@@ -160,7 +160,12 @@ cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
 linux   /vmlinuz-linux-cachyos
 initrd  /initramfs-linux-cachyos.img
-options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root quiet
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root quiet rw
 EOF
 
+# Setup mkinitcpio
+sed -i '/^HOOKS/s/block/& encrypt/' /etc/mkinitcpio.conf
+mkinitcpio -p
+
+# Proceed to setup
 arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
