@@ -165,7 +165,7 @@ EOF
 
 # Setup mkinitcpio
 sed -i '/^HOOKS/s/block/& encrypt/' /etc/mkinitcpio.conf
-mkinitcpio -p
+mkinitcpio -P
 
 # Proceed to setup
 arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
