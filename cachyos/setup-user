@@ -9,9 +9,9 @@ cd "$cwd"
 rm -rf /tmp/yay
 
 # Instll plymouth
-yay -S plymouth
+yay -S plymouth --noconfirm
 yay -S plymouth-theme-colorful-loop-git --noconfirm
 
-sed -i '/^HOOKS/s/udev/& plymouth/' /etc/mkinitcpio.conf
+sudo sed -i '/^HOOKS/s/udev/& plymouth/' /etc/mkinitcpio.conf
 
 sudo plymouth-set-default-theme -R colorful_loop
