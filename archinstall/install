@@ -10,4 +10,4 @@ systemctl restart systemd-timesyncd
 echo "Updating mirrorlist using relflector..."
 reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
-archinstall --config "https://install.alvinjay.site/user_configuration.json"
+archinstall --config "https://install.alvinjay.site/archinstall/user_configuration.json"

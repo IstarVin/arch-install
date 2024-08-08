@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -e
 
 # Ensure /mnt is unmounted
@@ -129,7 +131,8 @@ fi
 pacstrap /mnt iptables-nft mkinitcpio
 pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware $ucode base-devel
 pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
-pacstrap /mnt git vim sudo efibootmgr networkmanager
+pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib
+pacstrap /mnt wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire
 
 ## Setup fstab
 genfstab -U /mnt >>/mnt/etc/fstab
@@ -142,7 +145,9 @@ useradd -m -R /mnt "$username"
 usermod -R /mnt -c "$fullname" "$username"
 echo -n "${username}:${password}" | chpasswd -R /mnt
 echo -n "root:${rootPassword}" | chpasswd -R /mnt
-echo "${username} ALL=(ALL) ALL" >/mnt/etc/sudoers.d/00_"${username}"
+
+# Temporarily setup user as sudo nopasswd
+echo "${username} ALL=(ALL) NOPASSWD: ALL" >/mnt/etc/sudoers.d/00_"${username}"
 
 # Setup Systemd-boot
 arch-chroot /mnt bootctl install
@@ -160,7 +165,7 @@ cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
 linux   /vmlinuz-linux-cachyos
 initrd  /initramfs-linux-cachyos.img
-options cryptdevice=UUID=$device_uuid:enc_root root=/dev/mapper/enc_root rootfstype=btrfs rootflags=subvol=@ quiet rw
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash rw
 EOF
 
 # Setup mkinitcpio
@@ -168,4 +173,7 @@ sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
 # Proceed to setup
-arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/setup2.sh)
+arch-chroot /mnt bash <(curl -s https://install.alvinjay.site/cachyos/setup)
+arch-chroot -u "$username" /mnt bash <(curl -s https://install.alvinjay.site/cachyos/setup-user)
+
+sed -i 's/NOPASSWD: //' /etc/sudoers.d/00_"$username"
