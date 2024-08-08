@@ -16,6 +16,6 @@ echo "LANG=en_US.UTF-8" >/etc/locale.conf
 ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
 hwclock --systohc
 
-hostnamectl hostname archer
+echo "archer" >/etc/hostname
 
-systemctl enable --now NetworkManager
+systemctl enable NetworkManager

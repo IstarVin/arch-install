@@ -4,7 +4,7 @@
 cwd=$(pwd)
 git clone https://aur.archlinux.org/yay /tmp/yay
 cd /tmp/yay
-makepkgs -si --noconfirm
+makepkg -si --noconfirm
 cd "$cwd"
 rm -rf /tmp/yay
 
@@ -12,6 +12,6 @@ rm -rf /tmp/yay
 yay -S plymouth
 yay -S plymouth-theme-colorful-loop-git --noconfirm
 
-sed -i '/^HOOKS/s/udev/& plymouth/' /mnt/etc/mkinitcpio.conf
+sed -i '/^HOOKS/s/udev/& plymouth/' /etc/mkinitcpio.conf
 
 sudo plymouth-set-default-theme -R colorful_loop
