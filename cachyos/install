@@ -88,8 +88,16 @@ device=/dev/${disk}
 wipefs --all "${device}"
 sgdisk --clear "${device}" --new 1::-512MiB "${device}" --new 2::0 --typecode 2:ef00 "${device}"
 sgdisk --change-name=1:primary --change-name=2:ESP "${device}"
-part_root=${device}1
-part_boot=${device}2
+
+if [[ $disk == *"nvme"* ]]; then
+    part_root=${device}p1
+    part_boot=${device}p2
+else
+    part_root=${device}1
+    part_boot=${device}2
+    mkfs.vfat -n "EFI" -F 32 "${part_boot}"
+fi
+
 mkfs.vfat -n "EFI" -F 32 "${part_boot}"
 
 ## Setuo LUKS
