@@ -152,6 +152,7 @@ cp /etc/pacman.conf /mnt/etc/pacman.conf -f
 ## Setup users and password
 useradd -m -R /mnt "$username"
 usermod -R /mnt -c "$fullname" "$username"
+usermod -R /mnt -aG wheel "$username"
 echo -n "${username}:${password}" | chpasswd -R /mnt
 echo -n "root:${rootPassword}" | chpasswd -R /mnt
 
