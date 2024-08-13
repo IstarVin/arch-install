@@ -118,6 +118,9 @@ pacstrap /mnt base linux-zen linux-zen-headers linux-firmware $ucode base-devel
 pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib
 pacstrap /mnt wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire
 
+# remove fallback from mkinitcpio
+sed -i "s/'default' 'fallback'/'default'/" /mnt/etc/mkinitcpio.d/linux-*.preset
+
 ## Setup fstab
 genfstab -U /mnt >>/mnt/etc/fstab
 

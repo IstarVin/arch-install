@@ -17,3 +17,7 @@ ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
 hwclock --systohc
 
 systemctl enable NetworkManager
+
+cat <<EOF >>/etc/crypttab
+aj-drive UUID=055372e2-c647-4e7c-acf4-2fb5ad83f338 /root/keyfile
+EOF
