@@ -21,3 +21,7 @@ systemctl enable NetworkManager
 cat <<EOF >>/etc/crypttab
 aj-drive UUID=055372e2-c647-4e7c-acf4-2fb5ad83f338 /root/keyfile nofail
 EOF
+
+# Install plymouth theme
+# curl -o /tmp/plymouth-archlinux.zip https://install.alvinjay.site/plymouth-archlinux.zip
+# unzip -x /tmp/plymouth-archlinux.zip -d /usr/share/plymouth/themes
