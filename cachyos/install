@@ -81,6 +81,9 @@ Include = /etc/pacman.d/cachyos-v3-mirrorlist\
 [cachyos]\
 Include = /etc/pacman.d/cachyos-mirrorlist' /etc/pacman.conf
 
+sed -i 's/#\[multilib\]/\[multilib\]/' /etc/pacman.conf
+sed -i '/\[multilib\]/ { n; s/#// }' /etc/pacman.conf
+
 pacman -Sy
 
 ## Setup disk
