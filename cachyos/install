@@ -116,8 +116,8 @@ btrfs subvolume create /mnt/@var
 btrfs subvolume create /mnt/@home
 btrfs subvolume create /mnt/@snapshots
 
-btrfs subvolume create /mnt/swap
-btrfs filesystem mkswapfile --size 12g --uuid clear /mnt/swap/swapfile
+#btrfs subvolume create /mnt/swap
+#btrfs filesystem mkswapfile --size 12g --uuid clear /mnt/swap/swapfile
 
 umount /mnt
 mount -o noatime,nodiratime,compress=zstd,subvol=@ ${part_root_install} /mnt
@@ -156,11 +156,11 @@ sed -i "s/'default' 'fallback'/'default'/" /mnt/etc/mkinitcpio.d/linux-*.preset
 ## Setup fstab
 genfstab -U /mnt >>/mnt/etc/fstab
 
-cat <<EOF >>/mnt/etc/fstab
+#cat <<EOF >>/mnt/etc/fstab
 
 # Swap
-/swap/swapfile none swap defaults 0 0
-EOF
+#/swap/swapfile none swap defaults 0 0
+#EOF
 
 ## Copy post install to new root
 cp /etc/pacman.conf /mnt/etc/pacman.conf -f
