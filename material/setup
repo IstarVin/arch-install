@@ -1,5 +1,10 @@
 #!/bin/bash
 
+
+echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/00_"$USER"
+
 git clone https://github.com/IstarVin/hyprland-material-you ~/dotfiles
 cd ~/dotfiles
 bash install.sh
+
+sudo sed -i 's/NOPASSWD: //' /mnt/sudoers.d/00_"$USER"

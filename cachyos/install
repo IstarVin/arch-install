@@ -156,12 +156,6 @@ sed -i "s/'default' 'fallback'/'default'/" /mnt/etc/mkinitcpio.d/linux-*.preset
 ## Setup fstab
 genfstab -U /mnt >>/mnt/etc/fstab
 
-#cat <<EOF >>/mnt/etc/fstab
-
-# Swap
-#/swap/swapfile none swap defaults 0 0
-#EOF
-
 ## Copy post install to new root
 cp /etc/pacman.conf /mnt/etc/pacman.conf -f
 
