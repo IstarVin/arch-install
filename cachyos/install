@@ -193,7 +193,7 @@ sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
 # Proceed to setup
-arch-chroot /mnt bash <(curl -s https://install.istarvin.fun/cachyos/setup)
+arch-chroot /mnt bash <(curl -s https://arch-install.pages.dev/cachyos/setup)
 
 # Remove nopasswd
 sed -i 's/NOPASSWD: //' /mnt/etc/sudoers.d/00_"$username"
