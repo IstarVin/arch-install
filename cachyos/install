@@ -148,7 +148,7 @@ pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware $ucode bas
 pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
 pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib \
 	wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire \
-	linux-cachyos-nvidia-open scx-scheds yay kitty
+	linux-cachyos-nvidia scx-scheds yay kitty
 
 # remove fallback from mkinitcpio
 sed -i "s/'default' 'fallback'/'default'/" /mnt/etc/mkinitcpio.d/linux-*.preset
