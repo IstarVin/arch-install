@@ -1,0 +1,22 @@
+device_name = "Asus Keyboard"
+
+[[remap]]
+input = ["KEY_LEFTCTRL", "KEY_H"]
+output = ["KEY_LEFT"]
+
+[[remap]]
+input = ["KEY_LEFTCTRL", "KEY_J"]
+output = ["KEY_DOWN"]
+
+[[remap]]
+input = ["KEY_LEFTCTRL", "KEY_K"]
+output = ["KEY_UP"]
+
+[[remap]]
+input = ["KEY_LEFTCTRL", "KEY_L"]
+output = ["KEY_RIGHT"]
+
+[[dual_role]]
+input = "KEY_CAPSLOCK"
+hold = ["KEY_RIGHTCTRL"]
+tap = ["KEY_ESC"]
