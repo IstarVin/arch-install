@@ -28,7 +28,7 @@ btrfs filesystem mkswapfile --size 12g --uuid clear /swap/swapfile
 
 cat <<EOF >>/etc/fstab
 
-Swap
+#Swap
 /swap/swapfile none swap defaults 0 0
 EOF
 
