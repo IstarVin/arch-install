@@ -4,10 +4,10 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 install_deps() {
     yay -S --noconfirm --needed \
-        lsd fzf zoxide zsh bat less \
+        lsd fzf zoxide zsh bat less btop \
         ttf-space-mono-nerd ttf-ms-win10-auto yt-dlp bind nmap youtube-music \
         jellyfin-mpv-shim python-pystray noto-fonts noto-fonts-emoji noto-fonts-cjk \
-        gnome-system-monitor gnome-text-editor ufw encfs seahorse gvfs-smb amdvlk reflector \
+        gnome-text-editor ufw encfs seahorse gvfs-smb amdvlk reflector \
         neovim ntfs-3g nautilus-code nautilus-open-any-terminal mpv tailscale \
         unzip tmux go bluetooth-autoconnect btop powertop \
         yazi p7zip fd ffmpegthumbnailer chafa poppler 
@@ -86,7 +86,7 @@ rog_install() {
     sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
 
     asusctl -c 60
-    asusctl led-mode static -c 614F9A
+    asusctl aura static -c 614F9A
     echo "Skip if fail"
 }
 
