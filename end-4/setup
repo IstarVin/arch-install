@@ -1,8 +1,15 @@
 #!/bin/bash
 
-git clone https://github.com/IstarVin/dots-hyprland /tmp/dots-hyprland
+dotfiles=/mnt/AJ/.end4-dotfiles
+
+if [[ ! -d /mnt/AJ/dotfiles ]]; then
+    git clone https://github.com/IstarVin/dots-hyprland $dotfiles
+fi
+
 cwd=$(pwd)
-cd /tmp/dots-hyprland
+
+cd $dotfiles
+
 bash install.sh
+
 cd $cwd
-rm -rf /tmp/dots-hyprland

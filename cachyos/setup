@@ -34,6 +34,10 @@ EOF
 
 read -r -p "Enter keyfile command: " keyfile_command
 eval "$keyfile_command" > /root/keyfile
-# Install plymouth theme
-# curl -o /tmp/plymouth-archlinux.zip https://install.alvinjay.site/plymouth-archlinux.zip
-# unzip -x /tmp/plymouth-archlinux.zip -d /usr/share/plymouth/themes
+
+mkdir /mnt/AJ
+chown 1000:1000 /mnt/AJ
+echo -ne "
+# AJ
+UUID=$uuid /mnt/AJ btrfs defaults 0 2
+" >> /etc/fstab
