@@ -1,0 +1,43 @@
+#!/bin/bash
+
+nc=$(grep -c ^processor /proc/cpuinfo)
+TOTAL_MEM=$(cat /proc/meminfo | grep -i 'memtotal' | grep -o '[[:digit:]]*')
+if [[ $TOTAL_MEM -gt 8000000 ]]; then
+    sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j$nc\"/g" /etc/makepkg.conf
+    sed -i "s/COMPRESSXZ=(xz -c -z -)/COMPRESSXZ=(xz -c -T $nc -z -)/g" /etc/makepkg.conf
+fi
+
+# Setup locale
+echo "en_US.UTF-8 UTF-8" >>/etc/locale.gen
+locale-gen
+echo "LANG=en_US.UTF-8" >/etc/locale.conf
+
+# Setup time and date
+ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
+hwclock --systohc
+
+systemctl enable NetworkManager
+
+cat <<EOF >>/etc/crypttab
+aj-drive UUID=055372e2-c647-4e7c-acf4-2fb5ad83f338 /root/keyfile nofail
+EOF
+
+# Add Swapfile
+btrfs subvolume create /swap
+btrfs filesystem mkswapfile --size 50g --uuid clear /swap/swapfile
+
+cat <<EOF >>/etc/fstab
+
+#Swap
+/swap/swapfile none swap defaults 0 0
+EOF
+
+read -r -p "Enter keyfile command: " keyfile_command
+eval "$keyfile_command" > /root/keyfile
+
+mkdir /mnt/AJ
+chown 1000:1000 /mnt/AJ
+echo -ne "
+# AJ
+UUID=$uuid /mnt/AJ btrfs defaults 0 2
+" >> /etc/fstab
