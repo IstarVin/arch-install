@@ -24,7 +24,7 @@ EOF
 
 # Add Swapfile
 btrfs subvolume create /swap
-btrfs filesystem mkswapfile --size 12g --uuid clear /swap/swapfile
+btrfs filesystem mkswapfile --size 50g --uuid clear /swap/swapfile
 
 cat <<EOF >>/etc/fstab
 
