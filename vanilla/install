@@ -1,5 +1,23 @@
 #!/bin/bash
 
+execute_command() {
+    while true; do
+        "$@"
+        exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+            break
+        else
+            echo "Command failed with exit code $exit_code."
+            choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
+            case $choice in
+            "Continue the script") break ;;
+            "Retry the command") continue ;;
+            "Exit the script") exit 1 ;;
+            esac
+        fi
+    done
+}
+
 set -e
 
 # Ensure /mnt is unmounted
@@ -61,6 +79,8 @@ pacman-key --populate
 
 pacman -Sy archlinux-keyring --noconfirm
 
+pacman -S gum --noconfirm
+
 ## Setup disk
 device=/dev/${disk}
 wipefs --all "${device}"
@@ -113,10 +133,10 @@ else
 fi
 
 ## Install Arch
-pacstrap /mnt iptables-nft mkinitcpio
-pacstrap /mnt base linux-zen linux-zen-headers linux-firmware $ucode base-devel
-pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib
-pacstrap /mnt wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire
+execute_command pacstrap /mnt iptables-nft mkinitcpio
+execute_command pacstrap /mnt base linux-zen linux-zen-headers linux-firmware $ucode base-devel
+execute_command pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib
+execute_command pacstrap /mnt wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire
 
 # remove fallback from mkinitcpio
 sed -i "s/'default' 'fallback'/'default'/" /mnt/etc/mkinitcpio.d/linux-*.preset

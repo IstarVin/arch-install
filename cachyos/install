@@ -1,5 +1,23 @@
 #!/bin/bash
 
+execute_command() {
+    while true; do
+        "$@"
+        exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+            break
+        else
+            echo "Command failed with exit code $exit_code."
+            choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
+            case $choice in
+            "Continue the script") break ;;
+            "Retry the command") continue ;;
+            "Exit the script") exit 1 ;;
+            esac
+        fi
+    done
+}
+
 set -e
 
 # Ensure /mnt is unmounted
