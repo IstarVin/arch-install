@@ -185,15 +185,14 @@ arch-chroot /mnt mkinitcpio -P
 # Proceed to setup
 arch-chroot /mnt bash <(curl -s https://arch-install.pages.dev/setup) "$@"
 
-setup_keyfile() {
-	read -r -p "Enter keyfile command: " keyfile_command
-	eval "$keyfile_command" > /mnt/root/keyfile
-}
-
 # Remove nopasswd
 sed -i 's/NOPASSWD: //' /mnt/etc/sudoers.d/00_"$username"
 
 # Set hostname
 echo "$hostname" >/mnt/etc/hostname
+
+# Setup keyfile
+read -r -p "Enter keyfile command: " keyfile_command
+eval "$keyfile_command" > /mnt/root/keyfile
 
 echo 'After reboot run `bash <(curl -s https://arch-install.pages.dev/postinstall)`'

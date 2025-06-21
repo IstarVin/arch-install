@@ -69,8 +69,6 @@ main() {
 
 	setup_ajdisk
 	misc
-
-	setup_keyfile
 }
 
 if [[ "$*" != *"--source"* ]]; then
