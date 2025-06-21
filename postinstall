@@ -61,6 +61,7 @@ rog_install() {
 				Server = https://arch.asus-linux.org
 			EOF
 		fi
+    fi
 
     _install asusctl power-profiles-daemon supergfxctl switcheroo-control
     sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
@@ -120,9 +121,8 @@ main() {
     install_yay
     install_deps
     aj_disk
-    # evremap_setup
-    # rog_setup
-    # plymouth_setup
+    rog_setup
+    plymouth_setup
     ufw_setup
     docker_setup
     misc
