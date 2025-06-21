@@ -37,7 +37,7 @@ misc() {
 	EOF
 
 	# Setup NVIDIA
-	pacman -S nvidia-open-dkms
+	pacman -S nvidia-open-dkms nvidia-utils
 }
 
 setup_keyfile() {
