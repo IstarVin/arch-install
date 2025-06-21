@@ -37,17 +37,6 @@ read_info() {
 	echo "$key=${!key}" >> /tmp/saved 
 }
 
-read_var() {
-}
-
-set_var() {
-	key=$1
-	value=$2
-}
-get_var() {
-	key=$1
-}
-
 # Ensure /mnt is unmounted
 if lsblk | grep "/mnt$" >/dev/null 2>&1; then
     umount -q -A --recursive /mnt
