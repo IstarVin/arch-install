@@ -55,18 +55,18 @@ rog_install() {
         sudo pacman-key -a /tmp/g14.sec
         rm /tmp/g14.sec
 
-        echo -ne "
- [g14]
- Server = https://arch.asus-linux.org
- " | sudo tee -a /etc/pacman.conf
-    fi
+		if ! grep -q "^\[g14\]" /etc/pacman.conf; then
+			sudo tee -a /etc/pacman.conf > /dev/null <<-EOF
+				[g14]
+				Server = https://arch.asus-linux.org
+			EOF
+		fi
 
     _install asusctl power-profiles-daemon supergfxctl switcheroo-control
     sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
 
     asusctl -c 60
     asusctl aura static -c 614F9A
-    echo "Skip if fail"
 }
 
 rog_setup() {

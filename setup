@@ -41,3 +41,6 @@ echo -ne "
 # AJ
 UUID=a670b2de-99ca-43e3-8c34-3fc50150c12e /mnt/AJ btrfs defaults 0 2
 " >> /etc/fstab
+
+# Setup NVIDIA
+pacman -S nvidia-open-dkms
