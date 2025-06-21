@@ -63,25 +63,23 @@ evremap_install() {
 }
 
 rog_install() {
-    if ! pacman -Q chaotic-mirrorlist >/dev/null 2>&1; then
-        sudo pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-        sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-        sudo pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-        sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+    sudo pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+    sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+    sudo pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+    sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
 
-        wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
-        sudo pacman-key -a /tmp/g14.sec
-        rm /tmp/g14.sec
+    wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
+    sudo pacman-key -a /tmp/g14.sec
+    rm /tmp/g14.sec
 
-		if ! grep -q "^\[g14\]" /etc/pacman.conf; then
-			sudo tee -a /etc/pacman.conf > /dev/null <<-EOF
-				[g14]
-				Server = https://arch.asus-linux.org
-			EOF
-		fi
+    if ! grep -q "^\[g14\]" /etc/pacman.conf; then
+        sudo tee -a /etc/pacman.conf > /dev/null <<-EOF
+            [g14]
+        	Server = https://arch.asus-linux.org
+		EOF
     fi
 
-    _install asusctl power-profiles-daemon supergfxctl switcheroo-control
+    _install g14/asusctl power-profiles-daemon g14/supergfxctl switcheroo-control
     sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
 
     asusctl -c 60
@@ -126,7 +124,7 @@ ufw_setup() {
 misc() {
     sudo usermod -aG video,input $USER
 
-    [[ -f /mnt/AJ/Downloads/.docker-setup ]] && bash /mnt/AJ/Docker/.docker-setup
+    [[ -f /mnt/AJ/Docker/.docker-setup ]] && bash /mnt/AJ/Docker/.docker-setup
 
     # Disable systemd-resolved
     sudo systemctl disable systemd-resolved
