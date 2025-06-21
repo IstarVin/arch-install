@@ -4,9 +4,10 @@
 echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/00_"$USER" > /dev/null
 
 if [[ -d /mnt/AJ/dotfiles ]]; then
+	rm -rf $HOME/dotfiles
 	ln -sf /mnt/AJ/dotfiles $HOME
 else
-	git clone https://github.com/IstarVin/hyprland-material-you --depth=1 ~/dotfiles
+	[[ ! -d $HOME/dotfiles ]] && git clone https://github.com/IstarVin/hyprland-material-you --depth=1 ~/dotfiles
 fi
 
 (
