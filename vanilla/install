@@ -184,6 +184,10 @@ EOF
 sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
+if [[ "$*" == *"--chaotic-aur"* ]]; then
+	arch-chroot /mnt bash <(curl -s ${baseurl}/other/chaotic.sh)
+fi
+
 # Proceed to setup
 arch-chroot /mnt bash -s -- "$@" <<< "$(curl -s ${baseurl}/setup)"
 
