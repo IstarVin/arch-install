@@ -65,6 +65,22 @@ rog_setup() {
     fi
 }
 
+plymouth_install() {
+    _install plymouth plymouth-theme-archlinux
+    if pacman -Q grub >/dev/null 2>&1; then
+        sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& splash/' /etc/default/grub
+        sudo sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/' /etc/default/grub
+
+        sudo sed -i '/echo "\$message"/d' /etc/grub.d/10_linux
+
+        sudo grub-mkconfig -o /boot/grub/grub.cfg
+    fi
+
+    sudo sed -i '/^HOOKS/ {/plymouth/! s/udev/& plymouth/}' /etc/mkinitcpio.conf
+
+    sudo plymouth-set-default-theme -R archlinux
+}
+
 main() {
     install_deps
     aj_disk
@@ -72,4 +88,4 @@ main() {
     rog_setup
 }
 
-# main
+main
