@@ -188,3 +188,5 @@ sed -i 's/NOPASSWD: //' /mnt/etc/sudoers.d/00_"$username"
 
 # Set hostname
 echo "$hostname" >/mnt/etc/hostname
+
+echo "After reboot run `bash <(curl -s https://arch-install.pages.dev/postinstall)`"
