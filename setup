@@ -1,7 +1,5 @@
 #!/bin/bash
 
-using_chaotic_aur="false"
-
 misc() {
     # Optimizations
     nc=$(grep -c ^processor /proc/cpuinfo)
@@ -40,11 +38,6 @@ misc() {
 	pacman -S nvidia-open-dkms nvidia-utils
 }
 
-setup_keyfile() {
-	read -r -p "Enter keyfile command: " keyfile_command
-	eval "$keyfile_command" > /root/keyfile
-}
-
 setup_ajdisk() {
 	mkdir /mnt/AJ
 	chown 1000:1000 /mnt/AJ
@@ -69,60 +62,10 @@ setup_chaoticaur() {
 	pacman -Sy --noconfirm --needed yay
 }
 
-
-
-setup_rog() {
-	if [[ $using_chaotic_aur != "true" ]]; then
-		pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-		pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-		pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-		pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-
-		wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
-		pacman-key -a /tmp/g14.sec
-		rm /tmp/g14.sec
-
-		if ! grep -q "^\[g14\]" /etc/pacman.conf; then
-			tee -a /etc/pacman.conf > /dev/null <<-EOF
-				[g14]
-				Server = https://arch.asus-linux.org
-			EOF
-		fi
-	fi
-
-    pacman -Sy --noconfirm --needed asusctl power-profiles-daemon supergfxctl switcheroo-control
-    systemctl enable power-profiles-daemon supergfxd switcheroo-control
-
-	# asusctl -c 60
-    # asusctl aura static -c 614F9A
-}
-
-plymouth_setup() {
-    _install plymouth plymouth-theme-archlinux
-    if pacman -Q grub >/dev/null 2>&1; then
-        sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& splash/' /etc/default/grub
-        sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/' /etc/default/grub
-
-        sed -i '/echo "\$message"/d' /etc/grub.d/10_linux
-
-        grub-mkconfig -o /boot/grub/grub.cfg
-    fi
-
-    sed -i '/^HOOKS/ {/plymouth/! s/udev/& plymouth/}' /etc/mkinitcpio.conf
-
-    plymouth-set-default-theme -R archlinux
-}
-
 main() {
 	if [[ "$*" == *"--chaotic-aur"* ]]; then
-		using_chaotic_aur="true"
 		setup_chaoticaur
 	fi
-
-	#install_yay
-	#evremap_install
-	setup_rog
-	#plymouth_setup
 
 	setup_ajdisk
 	misc

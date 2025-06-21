@@ -18,48 +18,56 @@ execute_command() {
     done
 }
 
+read_password() {
+    prompt=$1
+    while :; do
+        read -s -r -p "$prompt: " password
+        echo
+        read -s -r -p "$prompt again: " password2
+        echo
+        [[ $password != "$password2" ]] || break
+        echo "error try again"
+    done
+    echo password
+}
+
+read_info() {
+	key=$1
+	read -r -p "Enter $key: " $key
+	echo "$key=${!key}" >> /tmp/saved 
+}
+
+read_var() {
+}
+
+set_var() {
+	key=$1
+	value=$2
+}
+get_var() {
+	key=$1
+}
+
 # Ensure /mnt is unmounted
 if lsblk | grep "/mnt$" >/dev/null 2>&1; then
     umount -q -A --recursive /mnt
 fi
 
 # Print available disks
-lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print $2"|"$3}'
+lsblk -n --output TYPE,KNAME,SIZE,MODEL | awk '$1=="disk"{print $2"|"$3" - "$4}'
+
+# source saved password
+[[ -f /tmp/saved ]] && source /tmp/saved
 
 # Enter necessary infos
-read -r -p "Enter disk name: " disk
-read -r -p "Enter username: " username
-read -r -p "Enter Full Name: " fullname
-read -r -p "Enter computer name: " hostname
+[[ ! -z $disk ]] || read_info "disk"
+[[ ! -z $username ]] || read_info "username"
+[[ ! -z $fullname ]] || read_info "fullname"
+[[ ! -z $hostname ]] || read_info "hostname"
 
-while :; do
-    read -s -r -p "Enter user password: " password
-    echo
-    read -s -r -p "Enter user password again: " password2
-    echo
-    [[ $password != "$password2" ]] || break
-    echo "error try again"
-done
-
-while :; do
-    echo
-    read -s -r -p "Enter root password: " rootPassword
-    echo
-    read -s -r -p "Enter root password: " rootPassword2
-    echo
-    [[ $rootPassword != "$rootPassword2" ]] || break
-    echo "error try again"
-done
-
-while :; do
-    echo
-    read -s -r -p "Enter luks password: " luksPassword
-    echo
-    read -s -r -p "Enter luks password: " luksPassword2
-    echo
-    [[ $luksPassword != "$luksPassword2" ]] || break
-    echo "error try again"
-done
+[[ ! -z $user_password ]] || read_password "user_password"
+[[ ! -z $root_password ]] || read_password "root_password"
+[[ ! -z $luks_password ]] || read_password "luks_password"
 
 clear
 
@@ -67,57 +75,64 @@ clear
 sed -i 's/^#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
 sed -i 's/^#Color/Color/' /etc/pacman.conf
 
-## Configure Mirrors
-echo "Updating mirrors using reflector"
-reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
-
 ## Setup pacman
 pacman-key --init
 pacman-key --populate
 
-pacman -Sy archlinux-keyring --noconfirm
+pacman -Sy archlinux-keyring gum --noconfirm --needed
 
-pacman -S gum --noconfirm
+## Configure Mirrors
+echo "Updating mirrors using reflector"
+execute_command reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
 ## Setup disk
-device=/dev/${disk}
-wipefs --all "${device}"
-sgdisk --clear "${device}" --new 1::-512MiB "${device}" --new 2::0 --typecode 2:ef00 "${device}"
-sgdisk --change-name=1:primary --change-name=2:ESP "${device}"
+setup_disk() {
+	device=/dev/${disk}
+	wipefs --all "${device}"
+	sgdisk --clear "${device}" --new 1::-512MiB "${device}" --new 2::0 --typecode 2:ef00 "${device}"
+	sgdisk --change-name=1:primary --change-name=2:ESP "${device}"
 
-if [[ $disk == *"nvme"* ]]; then
-    part_root=${device}p1
-    part_boot=${device}p2
-else
-    part_root=${device}1
-    part_boot=${device}2
-fi
+	if [[ $disk == *"nvme"* ]]; then
+		part_root=${device}p1
+		part_boot=${device}p2
+	else
+		part_root=${device}1
+		part_boot=${device}2
+	fi
 
-mkfs.vfat -n "EFI" -F 32 "${part_boot}"
+	mkfs.vfat -n "EFI" -F 32 "${part_boot}"
+}
+execute_command setup_disk
 
-## Setuo LUKS
-echo -n "${luksPassword}" | cryptsetup luksFormat "${part_root}"
-echo -n "${luksPassword}" | cryptsetup luksOpen "${part_root}" root
-part_root_install=/dev/mapper/root
+## Setup LUKS
+setup_luks() {
+	echo -n "${luks_password}" | cryptsetup luksFormat "${part_root}"
+	echo -n "${luks_password}" | cryptsetup luksOpen "${part_root}" root
+	part_root_install=/dev/mapper/root
+}
+execute_command setup_luks
 
-mkfs.btrfs -fL btrfs ${part_root_install}
-mount ${part_root_install} /mnt
+## Setup partitions
+setup_partitions() {
+	mkfs.btrfs -fL btrfs ${part_root_install}
+	mount ${part_root_install} /mnt
 
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@var
-btrfs subvolume create /mnt/@home
-btrfs subvolume create /mnt/@snapshots
+	btrfs subvolume create /mnt/@
+	btrfs subvolume create /mnt/@var
+	btrfs subvolume create /mnt/@home
+	btrfs subvolume create /mnt/@snapshots
 
-umount /mnt
-mount -m -o noatime,nodiratime,compress=zstd,subvol=@ ${part_root_install} /mnt
-mount -m -o noatime,nodiratime,compress=zstd,subvol=@var ${part_root_install} /mnt/var
-mount -m -o noatime,nodiratime,compress=zstd,subvol=@home ${part_root_install} /mnt/home
-mount -m -o noatime,nodiratime,compress=zstd,subvol=@snapshots ${part_root_install} /mnt/.snapshots
+	umount /mnt
+	mount -m -o noatime,nodiratime,compress=zstd,subvol=@ ${part_root_install} /mnt
+	mount -m -o noatime,nodiratime,compress=zstd,subvol=@var ${part_root_install} /mnt/var
+	mount -m -o noatime,nodiratime,compress=zstd,subvol=@home ${part_root_install} /mnt/home
+	mount -m -o noatime,nodiratime,compress=zstd,subvol=@snapshots ${part_root_install} /mnt/.snapshots
 
-mount -m "$part_boot" /mnt/boot
+	mount -m "$part_boot" /mnt/boot
+}
+execute_command setup_partitions
 
 pacstrap /mnt btrfs-progs
-# mount ${part_boot} /mnt/boot --mkdir
 
 # Determine intel or amd
 ucode=""
@@ -149,8 +164,8 @@ cp /etc/pacman.conf /mnt/etc/pacman.conf -f
 useradd -m -R /mnt "$username"
 usermod -R /mnt -c "$fullname" "$username"
 usermod -R /mnt -aG wheel "$username"
-echo -n "${username}:${password}" | chpasswd -R /mnt
-echo -n "root:${rootPassword}" | chpasswd -R /mnt
+echo -n "${username}:${user_password}" | chpasswd -R /mnt
+echo -n "root:${root_password}" | chpasswd -R /mnt
 
 # Temporarily setup user as sudo nopasswd
 echo "${username} ALL=(ALL) NOPASSWD: ALL" >/mnt/etc/sudoers.d/00_"${username}"
@@ -179,7 +194,12 @@ sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
 # Proceed to setup
-arch-chroot /mnt bash <(curl -s https://arch-install.pages.dev/setup)
+arch-chroot /mnt bash <(curl -s https://arch-install.pages.dev/setup) "$@"
+
+setup_keyfile() {
+	read -r -p "Enter keyfile command: " keyfile_command
+	eval "$keyfile_command" > /mnt/root/keyfile
+}
 
 # Remove nopasswd
 sed -i 's/NOPASSWD: //' /mnt/etc/sudoers.d/00_"$username"
