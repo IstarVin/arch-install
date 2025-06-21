@@ -2,6 +2,13 @@
 
 baseurl="https://arch-install.pages.dev"
 
+install_yay() {
+    sudo pacman -S --noconfirm --needed go
+    git clone "https://aur.archlinux.org/yay.git" /tmp/yay
+    cd /tmp/yay
+    makepkg -si --noconfirm
+}
+
 _install() {
     yay -S --needed --noconfirm $@
 }
