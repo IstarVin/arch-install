@@ -20,7 +20,6 @@ aj_disk() {
 
         ln -sf /mnt/AJ/.ssh/ $HOME
 
-
         mkdir -p ~/.hehe
         mkdir -p ~/.secrets
     fi
@@ -81,12 +80,39 @@ plymouth_setup() {
     sudo plymouth-set-default-theme -R archlinux
 }
 
+docker_setup() {
+    _install docker docker-compose docker-buildx
+    sudo usermod -aG docker $USER
+    sudo systemctl enable --now docker
+}
+
+ufw_setup() {
+    _install ufw
+    sudo systemctl enable --now ufw
+    sudo ufw enable
+}
+
+misc() {
+    sudo usermod -aG video,input $USER
+
+    bash /mnt/AJ/Docker/.docker-setup
+
+    # Disable systemd-resolved
+    sudo systemctl disable systemd-resolved
+
+    # Dont sleep on lid switch
+    sudo sed -i 's/^#\?HandleLidSwitchExternalPower=.*$/HandleLidSwitchExternalPower=ignore/' /etc/systemd/logind.conf
+}
+
 main() {
     install_deps
     aj_disk
     evremap_setup
     rog_setup
     plymouth_setup
+    ufw_setup
+    docker_setup
+    misc
 }
 
 main
