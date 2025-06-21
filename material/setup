@@ -15,4 +15,4 @@ fi
 )
 
 
-sudo sed -i 's/NOPASSWD: //' /mnt/sudoers.d/00_"$USER"
+sudo sed -i 's/NOPASSWD: //' /etc/sudoers.d/00_"$USER"
