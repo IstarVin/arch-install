@@ -18,8 +18,6 @@ execute_command() {
     done
 }
 
-set -e
-
 # Ensure /mnt is unmounted
 if lsblk | grep "/mnt$" >/dev/null 2>&1; then
     umount -q -A --recursive /mnt
