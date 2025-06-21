@@ -1,0 +1,289 @@
+#!/bin/bash
+
+# Enhanced Btrfs Snapshot Manager with /var support
+# Usage: ./snapshot_manager.sh [create|restore|delete|list] [options]
+
+# Configuration
+SNAPSHOT_ROOT="/.snapshots"  # Where to store snapshots
+ROOT_SUBVOL="/"                       # Root subvolume to snapshot
+HOME_SUBVOL="/home"                   # Home subvolume to snapshot
+VAR_SUBVOL="/var"                     # Var subvolume to snapshot
+DATE_FORMAT="%Y-%m-%d_%H:%M"          # Date format for auto-naming
+INCLUDE_VAR=true                      # Set to false to exclude /var
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if running as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo -e "${RED}Error: This script must be run as root${NC}" >&2
+    exit 1
+fi
+
+# Check if Btrfs is available
+if ! command -v btrfs &> /dev/null; then
+    echo -e "${RED}Error: btrfs command not found${NC}" >&2
+    exit 1
+fi
+
+# Check if /var is a separate subvolume
+if [ "$INCLUDE_VAR" = true ] && ! btrfs subvolume show "$VAR_SUBVOL" &>/dev/null; then
+    echo -e "${YELLOW}Notice: /var is not a separate subvolume - it will be included in root snapshot${NC}"
+    VAR_SUBVOL=""
+fi
+
+# Create snapshot directory if it doesn't exist
+mkdir -p "$SNAPSHOT_ROOT"
+
+create_snapshot() {
+    local label="$1"
+    local timestamp=$(date +"$DATE_FORMAT")
+    local snapshot_name
+    
+    if [ -z "$label" ]; then
+        snapshot_name="snapshot_$timestamp"
+    else
+        snapshot_name="${label}_${timestamp}"
+    fi
+
+    echo -e "${YELLOW}Creating snapshots...${NC}"
+    
+    # Create root snapshot
+    echo -e "Creating root snapshot: ${GREEN}root_${snapshot_name}${NC}"
+    btrfs subvolume snapshot -r "$ROOT_SUBVOL" "$SNAPSHOT_ROOT/root_${snapshot_name}"
+    
+    # Create home snapshot if different from root
+    if [ "$ROOT_SUBVOL" != "$HOME_SUBVOL" ]; then
+        echo -e "Creating home snapshot: ${GREEN}home_${snapshot_name}${NC}"
+        btrfs subvolume snapshot -r "$HOME_SUBVOL" "$SNAPSHOT_ROOT/home_${snapshot_name}"
+    fi
+    
+    # Create var snapshot if enabled and separate from root
+    if [ "$INCLUDE_VAR" = true ] && [ -n "$VAR_SUBVOL" ] && [ "$VAR_SUBVOL" != "$ROOT_SUBVOL" ]; then
+        echo -e "Creating var snapshot: ${GREEN}var_${snapshot_name}${NC}"
+        btrfs subvolume snapshot -r "$VAR_SUBVOL" "$SNAPSHOT_ROOT/var_${snapshot_name}"
+    fi
+    
+    echo -e "${GREEN}Snapshots created successfully!${NC}"
+}
+
+list_snapshots() {
+    echo -e "${YELLOW}Available snapshots:${NC}"
+    echo -e "Root snapshots:"
+    find "$SNAPSHOT_ROOT" -maxdepth 1 -type d -name "root_*" -printf "%f\n" | sed 's/^/  /'
+    
+    if [ "$ROOT_SUBVOL" != "$HOME_SUBVOL" ]; then
+        echo -e "\nHome snapshots:"
+        find "$SNAPSHOT_ROOT" -maxdepth 1 -type d -name "home_*" -printf "%f\n" | sed 's/^/  /'
+    fi
+    
+    if [ "$INCLUDE_VAR" = true ] && [ -n "$VAR_SUBVOL" ] && [ "$VAR_SUBVOL" != "$ROOT_SUBVOL" ]; then
+        echo -e "\nVar snapshots:"
+        find "$SNAPSHOT_ROOT" -maxdepth 1 -type d -name "var_*" -printf "%f\n" | sed 's/^/  /'
+    fi
+}
+
+delete_snapshot() {
+    local snapshot_name="$1"
+    
+    if [ -z "$snapshot_name" ]; then
+        echo -e "${RED}Error: Please specify a snapshot name${NC}" >&2
+        exit 1
+    fi
+    
+    # Check if it's a full name or partial
+    if [[ "$snapshot_name" != root_* && "$snapshot_name" != home_* && "$snapshot_name" != var_* ]]; then
+        # Try to match all types
+        local root_snap="$SNAPSHOT_ROOT/root_${snapshot_name}"
+        local home_snap="$SNAPSHOT_ROOT/home_${snapshot_name}"
+        local var_snap="$SNAPSHOT_ROOT/var_${snapshot_name}"
+        
+        if [ -d "$root_snap" ]; then
+            echo -e "Deleting root snapshot: ${GREEN}root_${snapshot_name}${NC}"
+            btrfs subvolume delete "$root_snap"
+        fi
+        
+        if [ -d "$home_snap" ]; then
+            echo -e "Deleting home snapshot: ${GREEN}home_${snapshot_name}${NC}"
+            btrfs subvolume delete "$home_snap"
+        fi
+        
+        if [ "$INCLUDE_VAR" = true ] && [ -d "$var_snap" ]; then
+            echo -e "Deleting var snapshot: ${GREEN}var_${snapshot_name}${NC}"
+            btrfs subvolume delete "$var_snap"
+        fi
+        
+        if [ ! -d "$root_snap" ] && [ ! -d "$home_snap" ] && { [ "$INCLUDE_VAR" = false ] || [ ! -d "$var_snap" ]; }; then
+            echo -e "${RED}Error: No matching snapshots found${NC}" >&2
+            exit 1
+        fi
+    else
+        # Full name provided
+        if [ -d "$SNAPSHOT_ROOT/$snapshot_name" ]; then
+            echo -e "Deleting snapshot: ${GREEN}$snapshot_name${NC}"
+            btrfs subvolume delete "$SNAPSHOT_ROOT/$snapshot_name"
+        else
+            echo -e "${RED}Error: Snapshot not found${NC}" >&2
+            exit 1
+        fi
+    fi
+    
+    echo -e "${GREEN}Snapshot(s) deleted successfully!${NC}"
+}
+
+restore_snapshot() {
+    local snapshot_name="$1"
+    
+    if [ -z "$snapshot_name" ]; then
+        echo -e "${RED}Error: Please specify a snapshot name${NC}" >&2
+        exit 1
+    fi
+    
+    # Check if it's a full name or partial
+    if [[ "$snapshot_name" != root_* && "$snapshot_name" != home_* && "$snapshot_name" != var_* ]]; then
+        # Try to match all types
+        local root_snap="$SNAPSHOT_ROOT/root_${snapshot_name}"
+        local home_snap="$SNAPSHOT_ROOT/home_${snapshot_name}"
+        local var_snap="$SNAPSHOT_ROOT/var_${snapshot_name}"
+        
+        if [ ! -d "$root_snap" ] && [ ! -d "$home_snap" ] && { [ "$INCLUDE_VAR" = false ] || [ ! -d "$var_snap" ]; }; then
+            echo -e "${RED}Error: No matching snapshots found${NC}" >&2
+            exit 1
+        fi
+    else
+        # Full name provided
+        if [ ! -d "$SNAPSHOT_ROOT/$snapshot_name" ]; then
+            echo -e "${RED}Error: Snapshot not found${NC}" >&2
+            exit 1
+        fi
+    fi
+    
+    echo -e "${YELLOW}WARNING: Restoring snapshots will replace your current data${NC}"
+    read -p "Are you sure you want to continue? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${RED}Restoration cancelled${NC}"
+        exit 0
+    fi
+    
+    # Restore root if exists
+    if [[ "$snapshot_name" == root_* ]] || [ -d "$root_snap" ]; then
+        local snap_to_restore=${snapshot_name//root_/}
+        if [[ "$snapshot_name" == root_* ]]; then
+            snap_to_restore=${snapshot_name}
+        else
+            snap_to_restore="root_${snapshot_name}"
+        fi
+        
+        echo -e "Restoring root from: ${GREEN}${snap_to_restore}${NC}"
+        
+        # Create a temporary snapshot of current state (for safety)
+        local backup_name="pre_restore_$(date +"$DATE_FORMAT")"
+        btrfs subvolume snapshot -r "$ROOT_SUBVOL" "$SNAPSHOT_ROOT/${backup_name}_root"
+        
+        # Delete the current root subvolume (requires booting from live USB if restoring /)
+        echo -e "${YELLOW}You need to boot from a live USB to restore the root filesystem.${NC}"
+        echo -e "Commands to run from live USB:"
+        echo -e "  mkdir -p /mnt/btrfs"
+        echo -e "  mount /dev/sdXN /mnt/btrfs"
+        echo -e "  cd /mnt/btrfs"
+        echo -e "  mv @ @_old"
+        echo -e "  btrfs subvolume snapshot ${SNAPSHOT_ROOT}/${snap_to_restore} @"
+        echo -e "After restoration, old root will be at @_old and backup at ${SNAPSHOT_ROOT}/${backup_name}_root"
+    fi
+    
+    # Restore home if exists and different from root
+    if [ "$ROOT_SUBVOL" != "$HOME_SUBVOL" ]; then
+        if [[ "$snapshot_name" == home_* ]] || [ -d "$home_snap" ]; then
+            local snap_to_restore=${snapshot_name//home_/}
+            if [[ "$snapshot_name" == home_* ]]; then
+                snap_to_restore=${snapshot_name}
+            else
+                snap_to_restore="home_${snapshot_name}"
+            fi
+            
+            echo -e "Restoring home from: ${GREEN}${snap_to_restore}${NC}"
+            
+            # Create backup of current home
+            local backup_name="pre_restore_$(date +"$DATE_FORMAT")"
+            btrfs subvolume snapshot -r "$HOME_SUBVOL" "$SNAPSHOT_ROOT/${backup_name}_home"
+            
+            # Restore home
+            umount "$HOME_SUBVOL" 2>/dev/null
+            mv "$HOME_SUBVOL" "${HOME_SUBVOL}_old"
+            btrfs subvolume snapshot "$SNAPSHOT_ROOT/${snap_to_restore}" "$HOME_SUBVOL"
+            
+            echo -e "${GREEN}Home restored successfully! Old home is at ${HOME_SUBVOL}_old${NC}"
+        fi
+    fi
+    
+    # Restore var if enabled and exists and different from root
+    if [ "$INCLUDE_VAR" = true ] && [ -n "$VAR_SUBVOL" ] && [ "$VAR_SUBVOL" != "$ROOT_SUBVOL" ]; then
+        if [[ "$snapshot_name" == var_* ]] || [ -d "$var_snap" ]; then
+            local snap_to_restore=${snapshot_name//var_/}
+            if [[ "$snapshot_name" == var_* ]]; then
+                snap_to_restore=${snapshot_name}
+            else
+                snap_to_restore="var_${snapshot_name}"
+            fi
+            
+            echo -e "Restoring var from: ${GREEN}${snap_to_restore}${NC}"
+            
+            # Create backup of current var
+            local backup_name="pre_restore_$(date +"$DATE_FORMAT")"
+            btrfs subvolume snapshot -r "$VAR_SUBVOL" "$SNAPSHOT_ROOT/${backup_name}_var"
+            
+            # Restore var
+            systemctl stop cron.service docker.service containerd.service 2>/dev/null
+            umount "$VAR_SUBVOL" 2>/dev/null
+            mv "$VAR_SUBVOL" "${VAR_SUBVOL}_old"
+            btrfs subvolume snapshot "$SNAPSHOT_ROOT/${snap_to_restore}" "$VAR_SUBVOL"
+            
+            echo -e "${GREEN}Var restored successfully! Old var is at ${VAR_SUBVOL}_old${NC}"
+            echo -e "${YELLOW}You may need to restart services that were using /var${NC}"
+        fi
+    fi
+    
+    echo -e "${GREEN}Restoration process prepared! Follow the instructions above.${NC}"
+}
+
+# Main script logic
+case "$1" in
+    create)
+        echo -e "${GREEN}Creating new snapshot${NC}"
+        create_snapshot "$2"
+        ;;
+    list)
+        list_snapshots
+        ;;
+    delete)
+        echo -e "${RED}Deleting snapshot${NC}"
+        delete_snapshot "$2"
+        ;;
+    restore)
+        echo -e "${YELLOW}Restoring from snapshot${NC}"
+        restore_snapshot "$2"
+        ;;
+    *)
+        echo "Enhanced Btrfs Snapshot Manager with /var support"
+        echo "Usage: $0 [create|list|delete|restore] [options]"
+        echo ""
+        echo "Commands:"
+        echo "  create [label]  Create new snapshots (optional label)"
+        echo "  list            List available snapshots"
+        echo "  delete <name>   Delete specified snapshot(s)"
+        echo "  restore <name>  Restore from snapshot (may require live USB)"
+        echo ""
+        echo "Examples:"
+        echo "  $0 create"
+        echo "  $0 create before_update"
+        echo "  $0 delete snapshot_2024-01-01_12:00"
+        echo "  $0 restore before_update_2024-01-01_12:00"
+        exit 1
+        ;;
+esac
+
+exit 0

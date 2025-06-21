@@ -1,5 +1,7 @@
 #!/bin/bash
 
+baseurl="https://arch-install.pages.dev"
+
 execute_command() {
     while true; do
         "$@"
@@ -183,7 +185,7 @@ sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
 
 # Proceed to setup
-arch-chroot /mnt bash -s -- "$@" <<< "$(curl -s https://arch-install.pages.dev/setup)"
+arch-chroot /mnt bash -s -- "$@" <<< "$(curl -s ${baseurl}/setup)"
 
 # Remove nopasswd
 sed -i 's/NOPASSWD: //' /mnt/etc/sudoers.d/00_"$username"
@@ -195,4 +197,9 @@ echo "$hostname" >/mnt/etc/hostname
 read -r -p "Enter keyfile command: " keyfile_command
 eval "$keyfile_command" > /mnt/root/keyfile
 
-echo 'After reboot run `bash <(curl -s https://arch-install.pages.dev/postinstall)`'
+curl -s "${baseurl}/extras/snapshot" > /mnt/usr/bin/snapshot
+chmod +x /mnt/usr/bin/snapshot
+
+arch-chroot /mnt snapshot create init
+
+echo "After reboot run \`bash <(curl -s ${baseurl}/postinstall)\`"
