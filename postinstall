@@ -2,6 +2,24 @@
 
 baseurl="https://arch-install.pages.dev"
 
+execute_command() {
+    while true; do
+        "$@"
+        exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+            break
+        else
+            echo "Command failed with exit code $exit_code."
+            choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
+            case $choice in
+            "Continue the script") break ;;
+            "Retry the command") continue ;;
+            "Exit the script") exit 1 ;;
+            esac
+        fi
+    done
+}
+
 install_yay() {
     if ! command -v yay; then
         sudo pacman -S --noconfirm --needed go
@@ -37,7 +55,7 @@ aj_disk() {
     fi
 }
 
-evremap_setup() {
+evremap_install() {
     _install evremap
     curl -s "$baseurl/extras/evremap/evremap.service" | sudo tee /etc/systemd/user/evremap.service
     curl -s "$baseurl/extras/evremap/evremap.toml" | sudo tee /etc/evremap.toml
@@ -45,7 +63,7 @@ evremap_setup() {
 }
 
 rog_install() {
-    if ! pacman -Q cachyos-mirrorlist >/dev/null 2>&1; then
+    if ! pacman -Q chaotic-mirrorlist >/dev/null 2>&1; then
         sudo pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
         sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
         sudo pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
@@ -118,14 +136,14 @@ misc() {
 }
 
 main() {
-    install_yay
-    install_deps
-    aj_disk
-    rog_setup
-    plymouth_setup
-    ufw_setup
-    docker_setup
-    misc
+    execute_command install_yay
+    execute_command install_deps
+    execute_command aj_disk
+    execute_command rog_setup
+    execute_command plymouth_setup
+    execute_command ufw_setup
+    execute_command docker_setup
+    execute_command misc
 }
 
 main
