@@ -3,10 +3,14 @@
 baseurl="https://arch-install.pages.dev"
 
 install_yay() {
-    sudo pacman -S --noconfirm --needed go
-    git clone "https://aur.archlinux.org/yay.git" /tmp/yay
-    cd /tmp/yay
-    makepkg -si --noconfirm
+    if ! command -v yay; then
+        sudo pacman -S --noconfirm --needed go
+        git clone "https://aur.archlinux.org/yay.git" /tmp/yay
+        cd /tmp/yay
+        makepkg -si --noconfirm
+    fi
+    cd
+    rm -rf /tmp/yay
 }
 
 _install() {
@@ -112,6 +116,7 @@ misc() {
 }
 
 main() {
+    install_yay
     install_deps
     aj_disk
     evremap_setup
