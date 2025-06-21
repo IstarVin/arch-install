@@ -66,31 +66,10 @@ setup_chaoticaur() {
 		Include = /etc/pacman.d/chaotic-mirrorlist
 	EOF
 
-	pacman -Sy --noconfirm yay
+	pacman -Sy --noconfirm --needed yay
 }
 
-install_yay() {
-    if ! command -v yay; then
-        pacman -S --noconfirm --needed go
-        git clone --depth=1 "https://aur.archlinux.org/yay.git" /tmp/yay
-        (
-            cd /tmp/yay
-            makepkg -si --noconfirm
-        )
-        rm -rf /tmp/yay
-    fi
-}
 
-_install() {
-    yay -S --needed --noconfirm $@
-}
-
-evremap_setup() {
-    _install evremap
-    curl -s "$baseurl/extras/evremap/evremap.service" | tee /etc/systemd/user/evremap.service
-    curl -s "$baseurl/extras/evremap/evremap.toml" | tee /etc/evremap.toml
-    systemctl enable evremap
-}
 
 setup_rog() {
 	if [[ $using_chaotic_aur != "true" ]]; then
@@ -111,7 +90,7 @@ setup_rog() {
 		fi
 	fi
 
-    _install asusctl power-profiles-daemon supergfxctl switcheroo-control
+    pacman -Sy --noconfirm --needed asusctl power-profiles-daemon supergfxctl switcheroo-control
     systemctl enable power-profiles-daemon supergfxd switcheroo-control
 
 	# asusctl -c 60
