@@ -3,8 +3,16 @@
 
 echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/00_"$USER"
 
-git clone https://github.com/IstarVin/hyprland-material-you ~/dotfiles
-cd ~/dotfiles
-bash install.sh
+if [[ -d /mnt/AJ/dotfiles ]]; then
+	ln -sf /mnt/AJ/dotfiles $HOME
+else
+	git clone https://github.com/IstarVin/hyprland-material-you ~/dotfiles
+fi
+
+(
+	cd ~/dotfiles
+	bash install.sh
+)
+
 
 sudo sed -i 's/NOPASSWD: //' /mnt/sudoers.d/00_"$USER"
