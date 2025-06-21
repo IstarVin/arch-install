@@ -35,7 +35,7 @@ misc() {
 	EOF
 
 	# Setup NVIDIA
-	pacman -S nvidia-open-dkms nvidia-utils
+	pacman -S --needed --noconfirm nvidia-open-dkms nvidia-utils
 }
 
 setup_ajdisk() {
@@ -72,5 +72,5 @@ main() {
 }
 
 if [[ "$*" != *"--source"* ]]; then
-	main
+	main "$@"
 fi
