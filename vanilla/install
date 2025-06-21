@@ -19,16 +19,16 @@ execute_command() {
 }
 
 read_password() {
-    prompt=$1
+    key=$1
     while :; do
-        read -s -r -p "$prompt: " password
+        read -s -r -p "Enter $key: " $key
         echo
-        read -s -r -p "$prompt again: " password2
+        read -s -r -p "Enter $key again: " check_value
         echo
-        [[ $password != "$password2" ]] || break
+        [[ ${!key} != "$check_value" ]] || break
         echo "error try again"
     done
-    echo password
+	echo "$key=${!key}" >> /tmp/saved 
 }
 
 read_info() {
