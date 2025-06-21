@@ -111,7 +111,7 @@ setup_rog() {
 		fi
 	fi
 
-    _install asusctl power-profiles-daemon supergfxctl switcheroo-control
+    pacman -Sy --noconfirm --needed asusctl power-profiles-daemon supergfxctl switcheroo-control
     systemctl enable power-profiles-daemon supergfxd switcheroo-control
 
 	# asusctl -c 60
@@ -140,10 +140,10 @@ main() {
 		setup_chaoticaur
 	fi
 
-	install_yay
-	evremap_install
+	#install_yay
+	#evremap_install
 	setup_rog
-	plymouth_setup
+	#plymouth_setup
 
 	setup_ajdisk
 	misc
