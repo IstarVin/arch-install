@@ -120,9 +120,9 @@ main() {
     install_yay
     install_deps
     aj_disk
-    evremap_setup
-    rog_setup
-    plymouth_setup
+    # evremap_setup
+    # rog_setup
+    # plymouth_setup
     ufw_setup
     docker_setup
     misc

@@ -1,46 +1,156 @@
 #!/bin/bash
 
-nc=$(grep -c ^processor /proc/cpuinfo)
-TOTAL_MEM=$(cat /proc/meminfo | grep -i 'memtotal' | grep -o '[[:digit:]]*')
-if [[ $TOTAL_MEM -gt 8000000 ]]; then
-    sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j$nc\"/g" /etc/makepkg.conf
-    sed -i "s/COMPRESSXZ=(xz -c -z -)/COMPRESSXZ=(xz -c -T $nc -z -)/g" /etc/makepkg.conf
+using_chaotic_aur="false"
+
+misc() {
+    # Optimizations
+    nc=$(grep -c ^processor /proc/cpuinfo)
+    TOTAL_MEM=$(cat /proc/meminfo | grep -i 'memtotal' | grep -o '[[:digit:]]*')
+    if [[ $TOTAL_MEM -gt 8000000 ]]; then
+        sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j$nc\"/g" /etc/makepkg.conf
+        sed -i "s/COMPRESSXZ=(xz -c -z -)/COMPRESSXZ=(xz -c -T $nc -z -)/g" /etc/makepkg.conf
+    fi
+
+    # Setup locale
+    echo "en_US.UTF-8 UTF-8" >>/etc/locale.gen
+    locale-gen
+    echo "LANG=en_US.UTF-8" >/etc/locale.conf
+
+    # Setup time and date
+    ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
+    hwclock --systohc
+
+    # enable nm
+    systemctl enable NetworkManager
+
+	# Add crypttab
+	tee -a /etc/crypttab > /dev/null <<-EOF
+		aj-drive UUID=055372e2-c647-4e7c-acf4-2fb5ad83f338 /root/keyfile nofail
+	EOF
+
+	# Add Swapfile
+	btrfs subvolume create /swap
+	btrfs filesystem mkswapfile --size 50g --uuid clear /swap/swapfile
+	tee -a /etc/fstab > /dev/null <<-EOF
+		#Swap
+		/swap/swapfile none swap defaults 0 0
+	EOF
+
+	# Setup NVIDIA
+	pacman -S nvidia-open-dkms
+}
+
+setup_keyfile() {
+	read -r -p "Enter keyfile command: " keyfile_command
+	eval "$keyfile_command" > /root/keyfile
+}
+
+setup_ajdisk() {
+	mkdir /mnt/AJ
+	chown 1000:1000 /mnt/AJ
+	tee -a /etc/fstab > /dev/null <<-EOF
+		# AJ
+		UUID=a670b2de-99ca-43e3-8c34-3fc50150c12e /mnt/AJ btrfs defaults 0 2
+	EOF
+}
+
+setup_chaoticaur() {
+	pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+	pacman-key --lsign-key 3056513887B78AEB
+
+	pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+	pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+
+	tee -a /etc/pacman.conf > /dev/null <<-EOF
+		[chaotic-aur]
+		Include = /etc/pacman.d/chaotic-mirrorlist
+	EOF
+
+	pacman -Sy --noconfirm yay
+}
+
+install_yay() {
+    if ! command -v yay; then
+        pacman -S --noconfirm --needed go
+        git clone --depth=1 "https://aur.archlinux.org/yay.git" /tmp/yay
+        (
+            cd /tmp/yay
+            makepkg -si --noconfirm
+        )
+        rm -rf /tmp/yay
+    fi
+}
+
+_install() {
+    yay -S --needed --noconfirm $@
+}
+
+evremap_setup() {
+    _install evremap
+    curl -s "$baseurl/extras/evremap/evremap.service" | tee /etc/systemd/user/evremap.service
+    curl -s "$baseurl/extras/evremap/evremap.toml" | tee /etc/evremap.toml
+    systemctl enable evremap
+}
+
+setup_rog() {
+	if [[ $using_chaotic_aur != "true" ]]; then
+		pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+		pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+		pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+		pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+
+		wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
+		pacman-key -a /tmp/g14.sec
+		rm /tmp/g14.sec
+
+		if ! grep -q "^\[g14\]" /etc/pacman.conf; then
+			tee -a /etc/pacman.conf > /dev/null <<-EOF
+				[g14]
+				Server = https://arch.asus-linux.org
+			EOF
+		fi
+	fi
+
+    _install asusctl power-profiles-daemon supergfxctl switcheroo-control
+    systemctl enable power-profiles-daemon supergfxd switcheroo-control
+
+	# asusctl -c 60
+    # asusctl aura static -c 614F9A
+}
+
+plymouth_setup() {
+    _install plymouth plymouth-theme-archlinux
+    if pacman -Q grub >/dev/null 2>&1; then
+        sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& splash/' /etc/default/grub
+        sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/' /etc/default/grub
+
+        sed -i '/echo "\$message"/d' /etc/grub.d/10_linux
+
+        grub-mkconfig -o /boot/grub/grub.cfg
+    fi
+
+    sed -i '/^HOOKS/ {/plymouth/! s/udev/& plymouth/}' /etc/mkinitcpio.conf
+
+    plymouth-set-default-theme -R archlinux
+}
+
+main() {
+	if [[ "$*" == *"--chaotic-aur"* ]]; then
+		using_chaotic_aur="true"
+		setup_chaoticaur
+	fi
+
+	install_yay
+	evremap_install
+	setup_rog
+	plymouth_setup
+
+	setup_ajdisk
+	misc
+
+	setup_keyfile
+}
+
+if [[ "$*" != *"--source"* ]]; then
+	main
 fi
-
-# Setup locale
-echo "en_US.UTF-8 UTF-8" >>/etc/locale.gen
-locale-gen
-echo "LANG=en_US.UTF-8" >/etc/locale.conf
-
-# Setup time and date
-ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
-hwclock --systohc
-
-systemctl enable NetworkManager
-
-cat <<EOF >>/etc/crypttab
-aj-drive UUID=055372e2-c647-4e7c-acf4-2fb5ad83f338 /root/keyfile nofail
-EOF
-
-# Add Swapfile
-btrfs subvolume create /swap
-btrfs filesystem mkswapfile --size 50g --uuid clear /swap/swapfile
-
-cat <<EOF >>/etc/fstab
-
-#Swap
-/swap/swapfile none swap defaults 0 0
-EOF
-
-read -r -p "Enter keyfile command: " keyfile_command
-eval "$keyfile_command" > /root/keyfile
-
-mkdir /mnt/AJ
-chown 1000:1000 /mnt/AJ
-echo -ne "
-# AJ
-UUID=a670b2de-99ca-43e3-8c34-3fc50150c12e /mnt/AJ btrfs defaults 0 2
-" >> /etc/fstab
-
-# Setup NVIDIA
-pacman -S nvidia-open-dkms
