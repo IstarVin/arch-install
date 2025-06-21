@@ -108,7 +108,7 @@ ufw_setup() {
 misc() {
     sudo usermod -aG video,input $USER
 
-    bash /mnt/AJ/Docker/.docker-setup
+    [[ -f /mnt/AJ/Downloads/.docker-setup ]] && bash /mnt/AJ/Docker/.docker-setup
 
     # Disable systemd-resolved
     sudo systemctl disable systemd-resolved
