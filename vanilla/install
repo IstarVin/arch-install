@@ -18,8 +18,6 @@ execute_command() {
     done
 }
 
-set -e
-
 # Ensure /mnt is unmounted
 if lsblk | grep "/mnt$" >/dev/null 2>&1; then
     umount -q -A --recursive /mnt
@@ -135,7 +133,7 @@ fi
 ## Install Arch
 execute_command pacstrap /mnt iptables-nft mkinitcpio
 execute_command pacstrap /mnt base linux-zen linux-zen-headers linux-firmware $ucode base-devel
-execute_command pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib
+execute_command pacstrap /mnt git vim sudo wget curl efibootmgr networkmanager pacman-contrib
 execute_command pacstrap /mnt wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire
 
 # remove fallback from mkinitcpio

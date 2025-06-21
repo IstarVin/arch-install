@@ -119,10 +119,10 @@ main() {
 		setup_chaoticaur
 	fi
 
-	install_yay
-	evremap_install
+	#install_yay
+	#evremap_install
 	setup_rog
-	plymouth_setup
+	#plymouth_setup
 
 	setup_ajdisk
 	misc
