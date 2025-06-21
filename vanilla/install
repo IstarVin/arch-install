@@ -206,4 +206,8 @@ chmod +x /mnt/usr/bin/snapshot
 
 arch-chroot /mnt snapshot create init
 
-echo "After reboot run \`bash <(curl -s ${baseurl}/postinstall)\`"
+tee /mnt/home/${username}/.postinstall > /dev/null << EOF
+bash <(curl -s ${baseurl}/postinstall)
+EOF
+
+echo "After reboot run \` .postinstall \`"
