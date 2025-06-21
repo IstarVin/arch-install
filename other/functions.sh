@@ -6,5 +6,7 @@ install_qemu() {
 
 	sudo sed -i 's/^#\(unix_sock_group = "libvirt"\)/\1/; s/^#\(unix_sock_rw_perms = "0770"\)/\1/' /etc/libvirt/libvirtd.conf
 
+	sudo systemctl enable libvirtd
+
 	echo "Reboot"
 }

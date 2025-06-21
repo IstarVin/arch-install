@@ -19,6 +19,7 @@ misc() {
     hwclock --systohc
 
     # enable nm
+	echo "[main]\ndns=none" | sudo tee /etc/NetworkManager/conf.d/10_nodns.conf
     systemctl enable NetworkManager
 
 	# Add crypttab
