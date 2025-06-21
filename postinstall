@@ -1,10 +1,75 @@
-#/usr/bin/bash
+#!/usr/bin/bash
 
-yay -S --noconfirm --needed \
-    lsd fzf zoxide zsh bat less btop \
-    ttf-space-mono-nerd ttf-ms-win10-auto yt-dlp bind nmap youtube-music \
-    jellyfin-mpv-shim python-pystray noto-fonts noto-fonts-emoji noto-fonts-cjk \
-    gnome-text-editor ufw encfs seahorse gvfs-smb amdvlk reflector \
-    neovim ntfs-3g nautilus-code nautilus-open-any-terminal mpv tailscale \
-    unzip tmux go bluetooth-autoconnect btop powertop \
-    yazi p7zip fd ffmpegthumbnailer chafa poppler 
+baseurl="https://arch-install.pages.dev"
+
+_install() {
+    yay -S --needed --noconfirm $@
+}
+
+install_deps() {
+    packages=$(curl -s "$baseurl/dependencies.conf" | awk '!/^\s*#/ && NF' | xargs)
+
+    _install ${packages}
+}
+
+aj_disk() {
+    uuid="a670b2de-99ca-43e3-8c34-3fc50150c12e"
+    if sudo blkid | grep $uuid >/dev/null 2>&1; then
+        ln -sf /mnt/AJ $HOME/AJ
+        ln -sf /mnt/AJ/{Documents,Downloads,Pictures,Projects,Videos} $HOME
+
+        ln -sf /mnt/AJ/.ssh/ $HOME
+
+
+        mkdir -p ~/.hehe
+        mkdir -p ~/.secrets
+    fi
+}
+
+evremap_setup() {
+    _install evremap
+    curl -s "$baseurl/extras/evremap/evremap.service" | sudo tee /etc/systemd/user/evremap.service
+    curl -s "$baseurl/extras/evremap/evremap.toml" | sudo tee /etc/evremap.toml
+    sudo systemctl enable --now evremap
+}
+
+rog_install() {
+    if ! pacman -Q cachyos-mirrorlist >/dev/null 2>&1; then
+        sudo pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+        sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+        sudo pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+        sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+
+        wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
+        sudo pacman-key -a /tmp/g14.sec
+        rm /tmp/g14.sec
+
+        echo -ne "
+ [g14]
+ Server = https://arch.asus-linux.org
+ " | sudo tee -a /etc/pacman.conf
+    fi
+
+    _install asusctl power-profiles-daemon supergfxctl switcheroo-control
+    sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
+
+    asusctl -c 60
+    asusctl aura static -c 614F9A
+    echo "Skip if fail"
+}
+
+rog_setup() {
+    if hostnamectl status | grep ROG >/dev/null 2>&1; then
+        rog_install
+        evremap_install
+    fi
+}
+
+main() {
+    install_deps
+    aj_disk
+    evremap_setup
+    rog_setup
+}
+
+# main

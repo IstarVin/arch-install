@@ -39,5 +39,5 @@ mkdir /mnt/AJ
 chown 1000:1000 /mnt/AJ
 echo -ne "
 # AJ
-UUID=$uuid /mnt/AJ btrfs defaults 0 2
+UUID=a670b2de-99ca-43e3-8c34-3fc50150c12e /mnt/AJ btrfs defaults 0 2
 " >> /etc/fstab
