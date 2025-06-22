@@ -23,4 +23,4 @@ tee -a /etc/pacman.conf > /dev/null <<-EOF
 	Include = /etc/pacman.d/chaotic-mirrorlist
 EOF
 
-pacman -Sy --noconfirm --needed yay
+pacman -Syu --noconfirm --needed yay

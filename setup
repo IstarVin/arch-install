@@ -19,21 +19,29 @@ misc() {
     hwclock --systohc
 
     # enable nm
-	echo "[main]\ndns=none" | sudo tee /etc/NetworkManager/conf.d/10_nodns.conf
+	sudo tee /etc/NetworkManager/conf.d/10_nodns > /dev/null <<-EOF
+		[main]
+		dns=none
+	EOF
     systemctl enable NetworkManager
 
 	# Add crypttab
-	tee -a /etc/crypttab > /dev/null <<-EOF
-		aj-drive UUID=055372e2-c647-4e7c-acf4-2fb5ad83f338 /root/keyfile nofail
-	EOF
+	uuid="055372e2-c647-4e7c-acf4-2fb5ad83f338"
+	if blkid | grep $uuid > /dev/null; then
+		tee -a /etc/crypttab > /dev/null <<-EOF
+			aj-drive UUID=${uuid} /root/keyfile nofail
+		EOF
+	fi
 
 	# Add Swapfile
 	btrfs subvolume create /swap
 	btrfs filesystem mkswapfile --size 50g --uuid clear /swap/swapfile
-	tee -a /etc/fstab > /dev/null <<-EOF
-		#Swap
-		/swap/swapfile none swap defaults 0 0
-	EOF
+	if [ $? -eq 0 ]; then
+		tee -a /etc/fstab > /dev/null <<-EOF
+			#Swap
+			/swap/swapfile none swap defaults 0 0
+		EOF
+	fi
 
 	# Setup NVIDIA
 	pacman -S --needed --noconfirm nvidia-open-dkms nvidia-utils
