@@ -42,9 +42,6 @@ misc() {
 			/swap/swapfile none swap defaults 0 0
 		EOF
 	fi
-
-	# Setup NVIDIA
-	pacman -S --needed --noconfirm nvidia-open-dkms nvidia-utils
 }
 
 setup_ajdisk() {
