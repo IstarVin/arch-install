@@ -138,6 +138,12 @@ misc() {
     sudo sed -i 's/^#\?HandleLidSwitchExternalPower=.*$/HandleLidSwitchExternalPower=ignore/' /etc/systemd/logind.conf
 }
 
+ctf() {
+    # CTF
+    _install exiftool binwalk android-apktool android-sdk-platform-tools ltrace \
+         steghide ruby gdb jad python-pwntools
+}
+
 main() {
     execute_command install_yay
     execute_command install_deps
@@ -149,4 +155,7 @@ main() {
     execute_command misc
 }
 
-main
+if [ "${1}" != "-s" ]; then
+    main
+fi
+
