@@ -15,3 +15,5 @@ yay -S plymouth-theme-colorful-loop-git --noconfirm
 sudo sed -i '/^HOOKS/s/udev/& plymouth/' /etc/mkinitcpio.conf
 
 sudo plymouth-set-default-theme -R colorful_loop
+
+sudo cachyos-rate-mirrors
