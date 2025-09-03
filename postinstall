@@ -121,6 +121,11 @@ ufw_setup() {
     sudo ufw enable
 }
 
+ctf_setup() {
+    _install ruby
+    sudo gem install zsteg
+}
+
 misc() {
     sudo usermod -aG video,input $USER
 

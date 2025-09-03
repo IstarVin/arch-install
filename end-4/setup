@@ -2,7 +2,7 @@
 
 dotfiles=/mnt/AJ/.end4-dotfiles
 
-if [[ ! -d /mnt/AJ/dotfiles ]]; then
+if [[ ! -d $dotfiles ]]; then
     git clone https://github.com/IstarVin/dots-hyprland $dotfiles
 fi
 
