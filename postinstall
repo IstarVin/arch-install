@@ -14,7 +14,7 @@ execute_command() {
             case $choice in
             "Continue the script") break ;;
             "Retry the command") continue ;;
-            "Exit the script") exit 1 ;;
+            *) exit 1 ;;
             esac
         fi
     done
@@ -74,10 +74,12 @@ rog_install() {
 
     if ! grep -q "^\[g14\]" /etc/pacman.conf; then
         sudo tee -a /etc/pacman.conf > /dev/null <<-EOF
-            [g14]
-        	Server = https://arch.asus-linux.org
-		EOF
+[g14]
+Server = https://arch.asus-linux.org
+EOF
     fi
+
+    sudo pacman -Syu --noconfirm
 
     _install g14/asusctl power-profiles-daemon g14/supergfxctl switcheroo-control
     sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
@@ -140,7 +142,7 @@ misc() {
 
 ctf() {
     # CTF
-    _install exiftool binwalk android-apktool android-sdk-platform-tools ltrace \
+    _install exiftool binwalk android-apktool android-sdk-platform-tools ltrace strace \
          steghide ruby gdb jad python-pwntools
 }
 
