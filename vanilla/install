@@ -201,6 +201,8 @@ echo "$hostname" >/mnt/etc/hostname
 read -r -p "Enter keyfile command: " keyfile_command
 eval "$keyfile_command" > /mnt/root/keyfile
 
+chmod 400 /mnt/root/keyfile
+
 curl -s "${baseurl}/extras/snapshot" > /mnt/usr/bin/snapshot
 chmod +x /mnt/usr/bin/snapshot
 

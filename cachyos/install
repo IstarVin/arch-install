@@ -3,33 +3,33 @@
 baseurl="https://arch-install.pages.dev"
 
 execute_command() {
-    while true; do
-        "$@"
-        exit_code=$?
-        if [ $exit_code -eq 0 ]; then
-            break
-        else
-            echo "Command failed with exit code $exit_code."
-            choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
-            case $choice in
-            "Continue the script") break ;;
-            "Retry the command") continue ;;
-            "Exit the script") exit 1 ;;
-            esac
-        fi
-    done
+	while true; do
+		"$@"
+		exit_code=$?
+		if [ $exit_code -eq 0 ]; then
+			break
+		else
+			echo "Command failed with exit code $exit_code."
+			choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
+			case $choice in
+			"Continue the script") break ;;
+			"Retry the command") continue ;;
+			"Exit the script") exit 1 ;;
+			esac
+		fi
+	done
 }
 
 read_password() {
-    key=$1
-    while :; do
-        read -s -r -p "Enter $key: " $key
-        echo
-        read -s -r -p "Enter $key again: " check_value
-        echo
-        [[ ${!key} != "$check_value" ]] || break
-        echo "error try again"
-    done
+	key=$1
+	while :; do
+		read -s -r -p "Enter $key: " $key
+		echo
+		read -s -r -p "Enter $key again: " check_value
+		echo
+		[[ ${!key} != "$check_value" ]] || break
+		echo "error try again"
+	done
 	echo "$key=${!key}" >> /tmp/saved 
 }
 
@@ -224,6 +224,8 @@ echo "$hostname" >/mnt/etc/hostname
 # Setup keyfile
 read -r -p "Enter keyfile command: " keyfile_command
 eval "$keyfile_command" > /mnt/root/keyfile
+
+chmod 400 /mnt/root/keyfile
 
 curl -s "${baseurl}/extras/snapshot" > /mnt/usr/bin/snapshot
 chmod +x /mnt/usr/bin/snapshot

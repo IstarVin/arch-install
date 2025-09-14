@@ -1,29 +1,29 @@
 #!/bin/bash
 
 misc() {
-    # Optimizations
-    nc=$(grep -c ^processor /proc/cpuinfo)
-    TOTAL_MEM=$(cat /proc/meminfo | grep -i 'memtotal' | grep -o '[[:digit:]]*')
-    if [[ $TOTAL_MEM -gt 8000000 ]]; then
-        sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j$nc\"/g" /etc/makepkg.conf
-        sed -i "s/COMPRESSXZ=(xz -c -z -)/COMPRESSXZ=(xz -c -T $nc -z -)/g" /etc/makepkg.conf
-    fi
+	# Optimizations
+	nc=$(grep -c ^processor /proc/cpuinfo)
+	TOTAL_MEM=$(cat /proc/meminfo | grep -i 'memtotal' | grep -o '[[:digit:]]*')
+	if [[ $TOTAL_MEM -gt 8000000 ]]; then
+		sed -i "s/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j$nc\"/g" /etc/makepkg.conf
+		sed -i "s/COMPRESSXZ=(xz -c -z -)/COMPRESSXZ=(xz -c -T $nc -z -)/g" /etc/makepkg.conf
+	fi
 
-    # Setup locale
-    echo "en_US.UTF-8 UTF-8" >>/etc/locale.gen
-    locale-gen
-    echo "LANG=en_US.UTF-8" >/etc/locale.conf
+	# Setup locale
+	echo "en_US.UTF-8 UTF-8" >>/etc/locale.gen
+	locale-gen
+	echo "LANG=en_US.UTF-8" >/etc/locale.conf
 
-    # Setup time and date
-    ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
-    hwclock --systohc
+	# Setup time and date
+	ln -sf /usr/share/zoneinfo/Asia/Manila /etc/localtime
+	hwclock --systohc
 
-    # enable nm
-	sudo tee /etc/NetworkManager/conf.d/10_nodns > /dev/null <<-EOF
+	# enable nm
+	tee /etc/NetworkManager/conf.d/10_nodns.conf > /dev/null <<-EOF
 		[main]
 		dns=none
 	EOF
-    systemctl enable NetworkManager
+	systemctl enable NetworkManager
 
 	# Add crypttab
 	uuid="055372e2-c647-4e7c-acf4-2fb5ad83f338"
@@ -42,6 +42,9 @@ misc() {
 			/swap/swapfile none swap defaults 0 0
 		EOF
 	fi
+
+	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+	sysctl -p
 }
 
 setup_ajdisk() {

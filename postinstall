@@ -3,161 +3,166 @@
 baseurl="https://arch-install.pages.dev"
 
 execute_command() {
-    while true; do
-        "$@"
-        exit_code=$?
-        if [ $exit_code -eq 0 ]; then
-            break
-        else
-            echo "Command failed with exit code $exit_code."
-            choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
-            case $choice in
-            "Continue the script") break ;;
-            "Retry the command") continue ;;
-            *) exit 1 ;;
-            esac
-        fi
-    done
+	while true; do
+		"$@"
+		exit_code=$?
+		if [ $exit_code -eq 0 ]; then
+			break
+		else
+			echo "Command failed with exit code $exit_code."
+			choice=$(gum choose "Continue the script" "Retry the command" "Exit the script")
+			case $choice in
+			"Continue the script") break ;;
+			"Retry the command") continue ;;
+			*) exit 1 ;;
+			esac
+		fi
+	done
 }
 
 install_yay() {
-    if ! command -v yay; then
-        sudo pacman -S --noconfirm --needed go
-        git clone "https://aur.archlinux.org/yay.git" /tmp/yay
-        (
-            cd /tmp/yay
-            makepkg -si --noconfirm
-        )
-        rm -rf /tmp/yay
-    fi
+	if ! command -v yay; then
+		sudo pacman -S --noconfirm --needed go
+		git clone "https://aur.archlinux.org/yay.git" /tmp/yay
+		(
+			cd /tmp/yay
+			makepkg -si --noconfirm
+		)
+		rm -rf /tmp/yay
+	fi
 }
 
 _install() {
-    yay -S --needed --noconfirm $@
+	yay -S --needed --noconfirm $@
 }
 
 install_deps() {
-    packages=$(curl -s "$baseurl/dependencies.conf" | awk '!/^\s*#/ && NF' | xargs)
+	packages=$(curl -s "$baseurl/dependencies.conf" | awk '!/^\s*#/ && NF' | xargs)
 
-    _install ${packages}
+	_install ${packages}
 }
 
 aj_disk() {
-    uuid="a670b2de-99ca-43e3-8c34-3fc50150c12e"
-    if sudo blkid | grep $uuid >/dev/null 2>&1; then
-        ln -sf /mnt/AJ $HOME/AJ
-        ln -sf /mnt/AJ/{Documents,Downloads,Pictures,Projects,Videos} $HOME
+	uuid="a670b2de-99ca-43e3-8c34-3fc50150c12e"
+	if sudo blkid | grep $uuid >/dev/null 2>&1; then
+		ln -sf /mnt/AJ $HOME/AJ
+		ln -sf /mnt/AJ/{Documents,Downloads,Pictures,Projects,Videos} $HOME
 
-        ln -sf /mnt/AJ/.ssh/ $HOME
+		ln -sf /mnt/AJ/.ssh/ $HOME
 
-        mkdir -p ~/.hehe
-        mkdir -p ~/.secrets
-    fi
+		mkdir -p ~/.hehe
+		mkdir -p ~/.secrets
+	fi
 }
 
 evremap_install() {
-    _install evremap
-    curl -s "$baseurl/extras/evremap/evremap.service" | sudo tee /etc/systemd/user/evremap.service
-    curl -s "$baseurl/extras/evremap/evremap.toml" | sudo tee /etc/evremap.toml
-    sudo systemctl enable --now evremap
+	_install evremap
+	curl -s "$baseurl/extras/evremap/evremap.service" | sudo tee /etc/systemd/user/evremap.service
+	curl -s "$baseurl/extras/evremap/evremap.toml" | sudo tee /etc/evremap.toml
+	sudo systemctl enable --now evremap
 }
 
 rog_install() {
-    sudo pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-    sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-    sudo pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
-    sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+	sudo pacman-key --recv-keys 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+	sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+	sudo pacman-key --lsign-key 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
+	sudo pacman-key --finger 8F654886F17D497FEFE3DB448B15A6B0E9A3FA35
 
-    wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
-    sudo pacman-key -a /tmp/g14.sec
-    rm /tmp/g14.sec
+	wget "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8b15a6b0e9a3fa35" -O /tmp/g14.sec
+	sudo pacman-key -a /tmp/g14.sec
+	rm /tmp/g14.sec
 
-    if ! grep -q "^\[g14\]" /etc/pacman.conf; then
-        sudo tee -a /etc/pacman.conf > /dev/null <<-EOF
-[g14]
-Server = https://arch.asus-linux.org
-EOF
-    fi
+	if ! grep -q "^\[g14\]" /etc/pacman.conf; then
+		sudo tee -a /etc/pacman.conf > /dev/null <<-EOF
+			[g14]
+			Server = https://arch.asus-linux.org
+		EOF
+	fi
 
-    sudo pacman -Syu --noconfirm
+	sudo pacman -Syu --noconfirm
 
-    _install g14/asusctl power-profiles-daemon g14/supergfxctl switcheroo-control
-    sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
+	_install g14/asusctl power-profiles-daemon g14/supergfxctl switcheroo-control
 
-    asusctl -c 60
-    asusctl aura static -c 614F9A
+	sudo sed -i 's/"no_logind": false/"no_logind": true/' /etc/supergfxd.conf
+	sudo sed -i 's/"vfio_enable": false/"vfio_enable": true/' /etc/supergfxd.conf
+
+	sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
+
+	asusctl -c 60
+	asusctl aura static -c 614F9A
 }
 
 rog_setup() {
-    if hostnamectl status | grep ROG >/dev/null 2>&1; then
-        rog_install
-        evremap_install
-    fi
+	if hostnamectl status | grep ROG >/dev/null 2>&1; then
+		rog_install
+		evremap_install
+	fi
 }
 
 plymouth_setup() {
-    _install plymouth plymouth-theme-archlinux
-    if pacman -Q grub >/dev/null 2>&1; then
-        sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& splash/' /etc/default/grub
-        sudo sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/' /etc/default/grub
+	_install plymouth plymouth-theme-archlinux
+	if pacman -Q grub >/dev/null 2>&1; then
+		sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& splash/' /etc/default/grub
+		sudo sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/' /etc/default/grub
 
-        sudo sed -i '/echo "\$message"/d' /etc/grub.d/10_linux
+		sudo sed -i '/echo "\$message"/d' /etc/grub.d/10_linux
 
-        sudo grub-mkconfig -o /boot/grub/grub.cfg
-    fi
+		sudo grub-mkconfig -o /boot/grub/grub.cfg
+	fi
 
-    sudo sed -i '/^HOOKS/ {/plymouth/! s/udev/& plymouth/}' /etc/mkinitcpio.conf
+	sudo sed -i '/^HOOKS/ {/plymouth/! s/udev/& plymouth/}' /etc/mkinitcpio.conf
 
-    sudo plymouth-set-default-theme -R archlinux
+	sudo plymouth-set-default-theme -R archlinux
 }
 
 docker_setup() {
-    _install docker docker-compose docker-buildx
-    sudo usermod -aG docker $USER
-    sudo systemctl enable --now docker
+	_install docker docker-compose docker-buildx
+	sudo usermod -aG docker $USER
+	sudo systemctl enable --now docker
 }
 
 ufw_setup() {
-    _install ufw
-    sudo systemctl enable --now ufw
-    sudo ufw enable
+	_install ufw
+	sudo systemctl enable --now ufw
+	sudo ufw enable
 }
 
 ctf_setup() {
-    _install ruby
-    sudo gem install zsteg
+	_install ruby
+	sudo gem install zsteg
 }
 
 misc() {
-    sudo usermod -aG video,input $USER
+	sudo usermod -aG video,input $USER
 
-    [[ -f /mnt/AJ/Docker/.docker-setup ]] && bash /mnt/AJ/Docker/.docker-setup
+	[[ -f /mnt/AJ/Docker/.docker-setup ]] && bash /mnt/AJ/Docker/.docker-setup
 
-    # Disable systemd-resolved
-    sudo systemctl disable systemd-resolved
+	# Disable systemd-resolved
+	sudo systemctl disable systemd-resolved
 
-    # Dont sleep on lid switch
-    sudo sed -i 's/^#\?HandleLidSwitchExternalPower=.*$/HandleLidSwitchExternalPower=ignore/' /etc/systemd/logind.conf
+	# Dont sleep on lid switch
+	sudo sed -i 's/^#\?HandleLidSwitchExternalPower=.*$/HandleLidSwitchExternalPower=ignore/' /etc/systemd/logind.conf
 }
 
 ctf() {
-    # CTF
-    _install exiftool binwalk android-apktool android-sdk-platform-tools ltrace strace \
-         steghide ruby gdb jad python-pwntools
+	# CTF
+	_install exiftool binwalk android-apktool android-sdk-platform-tools ltrace strace \
+		 steghide ruby gdb jad python-pwntools
 }
 
 main() {
-    execute_command install_yay
-    execute_command install_deps
-    execute_command aj_disk
-    execute_command rog_setup
-    execute_command plymouth_setup
-    execute_command ufw_setup
-    execute_command docker_setup
-    execute_command misc
+	sudo pacman -S gum --noconfirm
+	execute_command install_yay
+	execute_command install_deps
+	execute_command aj_disk
+	execute_command rog_setup
+	execute_command plymouth_setup
+	execute_command ufw_setup
+	execute_command docker_setup
+	execute_command misc
 }
 
 if [[ " $* " != *" -s "* ]]; then
-    main
+	main
 fi
 
