@@ -13,7 +13,10 @@ install_qemu() {
 	sudo sed -i 's/#dynamic_ownership = 1/dynamic_ownership = 0/' /etc/libvirt/qemu.conf
 	sudo sed -i 's/#user = "libvirt-qemu"/user = "root"/' /etc/libvirt/qemu.conf
 
-	sudo systemctl enable libvirtd
+	sudo systemctl enable --now libvirtd
+
+	virsh -c qemu:///system net-autostart default
+	virsh -c qemu:///system net-start default
 
 	echo "Reboot"
 }
@@ -56,6 +59,17 @@ setup_vm() {
 	sudo tee /etc/udev/rules.d/99-kvmfr.rules <<-EOF
 		SUBSYSTEM=="kvmfr", OWNER="${USER}", GROUP="kvm", MODE="0660"
 	EOF
+
+	if ! grep -q "^cgroup_device_acl" /etc/libvirt/qemu.conf; then
+		sudo tee -a /etc/libvirt/qemu.conf <<-EOF
+			cgroup_device_acl = [
+				"/dev/null", "/dev/full", "/dev/zero",
+				"/dev/random", "/dev/urandom",
+				"/dev/ptmx", "/dev/kvm",
+				"/dev/userfaultfd", "/dev/kvmfr0"
+			]
+		EOF
+	fi
 }
 
 install_chaotic() {
