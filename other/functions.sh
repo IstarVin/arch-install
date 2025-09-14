@@ -22,7 +22,7 @@ setup_vm() {
 	local name=$1
 	local vmhooks="${baseurl}/extras/vm/hooks"
 
-	yay -S --noconfirm looking-glass looking-glass-dkms
+	yay -S --noconfirm looking-glass looking-glass-module-dkms
 	sudo mkdir -p /etc/libvirt/hooks/qemu.d
 	sudo wget 'https://asus-linux.org/files/vfio/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
 	sudo chmod +x /etc/libvirt/hooks/qemu
@@ -60,4 +60,13 @@ setup_vm() {
 
 install_chaotic() {
 	bash <(curl -s https://arch-install.pages.dev/other/chaotic.sh)
+}
+
+setup_win11() {
+	install_qemu
+	setup_vm win11
+
+	sudo systemctl start libvirtd
+	wget -o /tmp/win11.xml "${baseurl}/extras/vm/win11.xml"
+	virsh -c qemu:///system define --file /tmp/win11.xml
 }
