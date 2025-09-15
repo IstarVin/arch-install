@@ -26,7 +26,7 @@ misc() {
 	systemctl enable NetworkManager
 
 	# Add crypttab
-	uuid="055372e2-c647-4e7c-acf4-2fb5ad83f338"
+	uuid="7d2df54f-60df-410c-b5a1-d867a7d4f0c9"
 	if blkid | grep $uuid > /dev/null; then
 		tee -a /etc/crypttab > /dev/null <<-EOF
 			aj-drive UUID=${uuid} /root/keyfile nofail
@@ -52,7 +52,7 @@ setup_ajdisk() {
 	chown 1000:1000 /mnt/AJ
 	tee -a /etc/fstab > /dev/null <<-EOF
 		# AJ
-		UUID=a670b2de-99ca-43e3-8c34-3fc50150c12e /mnt/AJ btrfs defaults 0 2
+		/dev/mapper/aj-drive /mnt/AJ ext4 defaults,noatime,nodiratime 0 2
 	EOF
 }
 
