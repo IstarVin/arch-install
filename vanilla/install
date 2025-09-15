@@ -99,6 +99,7 @@ execute_command setup_disk
 setup_luks() {
 	echo -n "${luks_password}" | cryptsetup luksFormat "${part_root}"
 	echo -n "${luks_password}" | cryptsetup luksOpen "${part_root}" root
+	echo -n "${luks_password}" | cryptsetup --allow-discards --persistent refresh root
 	part_root_install=/dev/mapper/root
 }
 execute_command setup_luks
@@ -144,6 +145,7 @@ execute_command pacstrap /mnt wireplumber pipewire-audio pipewire-pulse pipewire
 
 # remove fallback from mkinitcpio
 sed -i "s/'default' 'fallback'/'default'/" /mnt/etc/mkinitcpio.d/linux-*.preset
+sed -i '/^fallback/ s/^/#/' /mnt/etc/mkinitcpio.d/linux-*.preset
 
 ## Setup fstab
 genfstab -U /mnt >>/mnt/etc/fstab

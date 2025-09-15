@@ -45,6 +45,8 @@ misc() {
 
 	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 	sysctl -p
+
+	echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 }
 
 setup_ajdisk() {

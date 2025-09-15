@@ -43,7 +43,7 @@ install_deps() {
 }
 
 aj_disk() {
-	uuid="a670b2de-99ca-43e3-8c34-3fc50150c12e"
+	uuid="c28b1f88-f68f-41fa-a366-41f679422dba"
 	if sudo blkid | grep $uuid >/dev/null 2>&1; then
 		ln -sf /mnt/AJ $HOME
 		ln -sf /mnt/AJ/{Documents,Downloads,Pictures,Projects,Videos} $HOME
