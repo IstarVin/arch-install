@@ -83,10 +83,12 @@ rog_install() {
 
 	_install g14/asusctl power-profiles-daemon g14/supergfxctl switcheroo-control
 
+	sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
+
 	sudo sed -i 's/"no_logind": false/"no_logind": true/' /etc/supergfxd.conf
 	sudo sed -i 's/"vfio_enable": false/"vfio_enable": true/' /etc/supergfxd.conf
 
-	sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
+	sudo systemctl restart supergfxd
 
 	asusctl -c 60
 	asusctl aura static -c 614F9A

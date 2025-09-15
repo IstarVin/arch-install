@@ -81,6 +81,6 @@ setup_win11() {
 	setup_vm win11
 
 	sudo systemctl start libvirtd
-	wget -o /tmp/win11.xml "${baseurl}/extras/vm/win11.xml"
+	wget -O /tmp/win11.xml "${baseurl}/extras/vm/win11.xml"
 	virsh -c qemu:///system define --file /tmp/win11.xml
 }

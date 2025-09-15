@@ -180,6 +180,13 @@ initrd  /initramfs-linux-zen.img
 options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash pcie_asm=off rw
 EOF
 
+cat <<EOF >/mnt/boot/loader/entries/arch-powersave.conf
+title   Arch Linux Powersave
+linux   /vmlinuz-linux-zen
+initrd  /initramfs-linux-zen.img
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash rw
+EOF
+
 # Setup mkinitcpio
 sed -i '/^HOOKS/s/block/& encrypt/' /mnt/etc/mkinitcpio.conf
 arch-chroot /mnt mkinitcpio -P
