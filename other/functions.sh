@@ -57,7 +57,7 @@ setup_vm() {
 	EOF
 
 	sudo tee /etc/udev/rules.d/99-kvmfr.rules <<-EOF
-		SUBSYSTEM=="kvmfr", OWNER="${USER}", GROUP="kvm", MODE="0660"
+		SUBSYSTEM=="misc", KERNEL=="kvmfr*", GROUP="kvm", MODE="0660"
 	EOF
 
 	if ! grep -q "^cgroup_device_acl" /etc/libvirt/qemu.conf; then
@@ -80,7 +80,6 @@ setup_win11() {
 	install_qemu
 	setup_vm win11
 
-	sudo systemctl start libvirtd
 	wget -O /tmp/win11.xml "${baseurl}/extras/vm/win11.xml"
 	virsh -c qemu:///system define --file /tmp/win11.xml
 }

@@ -58,6 +58,72 @@ setup_ajdisk() {
 	EOF
 }
 
+secure_boot() {
+	# Install required packages
+	pacman -S --needed --noconfirm sbctl tpm2-tss
+
+	# Check if Secure Boot is supported
+	if ! sbctl status &>/dev/null; then
+		echo "Error: Secure Boot is not supported on this system"
+		return 1
+	fi
+
+	# Check if system is in Setup Mode
+	if ! sbctl status | grep -q "Setup Mode.*Enabled"; then
+		echo "Warning: System is not in Setup Mode"
+		echo "Please enable Setup Mode in UEFI/BIOS settings and clear existing keys"
+		echo "Then run this function again"
+		return 1
+	fi
+
+	# Create custom Secure Boot keys
+	echo "Creating custom Secure Boot keys..."
+	sbctl create-keys
+
+	# Enroll the keys (with Microsoft keys for compatibility)
+	echo "Enrolling Secure Boot keys..."
+	sbctl enroll-keys -m
+
+	# Find and sign bootloader and kernel files
+	echo "Signing bootloader and kernel files..."
+
+	# Sign GRUB bootloader
+	if [ -f "/boot/grub/x86_64-efi/core.efi" ]; then
+		sbctl sign -s /boot/grub/x86_64-efi/core.efi
+	fi
+	if [ -f "/boot/grub/x86_64-efi/grub.efi" ]; then
+		sbctl sign -s /boot/grub/x86_64-efi/grub.efi
+	fi
+	if [ -f "/boot/EFI/GRUB/grubx64.efi" ]; then
+		sbctl sign -s /boot/EFI/GRUB/grubx64.efi
+	fi
+	if [ -f "/boot/EFI/systemd/systemd-bootx64.efi" ]; then
+		sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+	fi
+
+	# Sign kernel and initramfs
+	for kernel in /boot/vmlinuz-*; do
+		if [ -f "$kernel" ]; then
+			sbctl sign -s "$kernel"
+		fi
+	done
+
+	# Sign EFI binaries
+	if [ -f "/boot/EFI/BOOT/BOOTX64.EFI" ]; then
+		sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
+	fi
+
+	# Verify signatures
+	echo "Verifying signatures..."
+	sbctl verify
+
+	echo "Secure Boot setup complete!"
+	echo "Status:"
+	sbctl status
+	echo ""
+	echo "IMPORTANT: Reboot and enable Secure Boot in UEFI/BIOS settings"
+}
+
 main() {
 	setup_ajdisk
 	misc
