@@ -207,7 +207,7 @@ cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
 linux   /vmlinuz-linux-cachyos
 initrd  /initramfs-linux-cachyos.img
-options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash pcie_asm=off rw
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash pcie_aspm=off rw
 EOF
 
 # Setup mkinitcpio
