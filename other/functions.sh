@@ -83,3 +83,69 @@ setup_win11() {
 	wget -O /tmp/win11.xml "${baseurl}/extras/vm/win11.xml"
 	virsh -c qemu:///system define --file /tmp/win11.xml
 }
+
+secure_boot() {
+	# Install required packages
+	sudo pacman -S --needed --noconfirm sbctl tpm2-tss
+
+	# Check if Secure Boot is supported
+	if ! sudo sbctl status &>/dev/null; then
+		echo "Error: Secure Boot is not supported on this system"
+		return 1
+	fi
+
+	# Check if system is in Setup Mode
+	if ! sudo sbctl status | grep -q "Setup Mode.*Enabled"; then
+		echo "Warning: System is not in Setup Mode"
+		echo "Please enable Setup Mode in UEFI/BIOS settings and clear existing keys"
+		echo "Then run this function again"
+		return 1
+	fi
+
+	# Create custom Secure Boot keys
+	echo "Creating custom Secure Boot keys..."
+	sudo sbctl create-keys
+
+	# Enroll the keys (with Microsoft keys for compatibility)
+	echo "Enrolling Secure Boot keys..."
+	sudo sbctl enroll-keys -m
+
+	# Find and sign bootloader and kernel files
+	echo "Signing bootloader and kernel files..."
+
+	# Sign GRUB bootloader
+	if [ -f "/boot/grub/x86_64-efi/core.efi" ]; then
+		sudo sbctl sign -s /boot/grub/x86_64-efi/core.efi
+	fi
+	if [ -f "/boot/grub/x86_64-efi/grub.efi" ]; then
+		sudo sbctl sign -s /boot/grub/x86_64-efi/grub.efi
+	fi
+	if [ -f "/boot/EFI/GRUB/grubx64.efi" ]; then
+		sudo sbctl sign -s /boot/EFI/GRUB/grubx64.efi
+	fi
+	if [ -f "/boot/EFI/systemd/systemd-bootx64.efi" ]; then
+		sudo sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+	fi
+
+	# Sign kernel and initramfs
+	for kernel in /boot/vmlinuz-*; do
+		if [ -f "$kernel" ]; then
+			sudo sbctl sign -s "$kernel"
+		fi
+	done
+
+	# Sign EFI binaries
+	if [ -f "/boot/EFI/BOOT/BOOTX64.EFI" ]; then
+		sudo sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
+	fi
+
+	# Verify signatures
+	echo "Verifying signatures..."
+	sudo sbctl verify
+
+	echo "Secure Boot setup complete!"
+	echo "Status:"
+	sudo sbctl status
+	echo ""
+	echo "IMPORTANT: Reboot and enable Secure Boot in UEFI/BIOS settings"
+}
