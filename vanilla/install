@@ -189,6 +189,8 @@ initrd  /initramfs-linux-zen.img
 options rd.luks.name=$device_uuid=root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash rw
 EOF
 
+echo "KEYMAP=us" > /mnt/etc/vconsole.conf
+
 # Setup mkinitcpio
 # Replace HOOKS line with the exact desired hooks
 sed -i 's/^HOOKS=.*/HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)/' /mnt/etc/mkinitcpio.conf

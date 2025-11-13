@@ -57,7 +57,7 @@ setup_vm() {
 	EOF
 
 	sudo tee /etc/udev/rules.d/99-kvmfr.rules <<-EOF
-		SUBSYSTEM=="misc", KERNEL=="kvmfr*", GROUP="kvm", MODE="0660"
+		SUBSYSTEM=="kvmfr", GROUP="kvm", MODE="0660"
 	EOF
 
 	if ! grep -q "^cgroup_device_acl" /etc/libvirt/qemu.conf; then
