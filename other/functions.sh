@@ -1,10 +1,12 @@
 #!/usr/bin/bash
 
+set -euo pipefail
+
 baseurl="https://arch-install.pages.dev"
 
 install_qemu() {
 	sudo pacman -S --needed --noconfirm qemu-desktop virt-manager virt-viewer dnsmasq \
-		vde2 bridge-utils openbsd-netcat ebtables libguestfs dmidecode
+		vde2 openbsd-netcat ebtables libguestfs dmidecode
 
 	local current_user
 	current_user=$(whoami)

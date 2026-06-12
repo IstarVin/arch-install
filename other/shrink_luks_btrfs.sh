@@ -109,9 +109,15 @@ else
     MOUNTED_BY_US=1
 fi
 
-# Get current LUKS size
-ORIGINAL_LUKS_SIZE=$(cryptsetup status "$MAPPER_NAME" | grep "size:" | awk '{print $2}')
-CURRENT_GIB=$(awk "BEGIN {printf \"%.1f\", $ORIGINAL_LUKS_SIZE / 2 / 1024 / 1024}")
+# Get current LUKS size directly from the mapped block device
+ORIGINAL_LUKS_SIZE=$(lsblk -b -dn -o SIZE "$MAPPER_PATH" 2>/dev/null | head -1)
+
+if [[ -z "$ORIGINAL_LUKS_SIZE" ]]; then
+    gum style --foreground 196 "Error: Could not determine the current size of $MAPPER_PATH"
+    exit 1
+fi
+
+CURRENT_GIB=$(awk "BEGIN {printf \"%.1f\", $ORIGINAL_LUKS_SIZE / 1024 / 1024 / 1024}")
 
 # ==========================================
 # 5. ANALYZE SPACE
@@ -173,7 +179,7 @@ fi
 # ==========================================
 # 8. FIND PHYSICAL PARTITION
 # ==========================================
-LUKS_DEVICE=$(cryptsetup status "$MAPPER_NAME" | grep "device:" | awk '{print $2}')
+LUKS_DEVICE=$(cryptsetup status "$MAPPER_NAME" | awk -F': *' '/^[[:space:]]*device:/ {print $2; exit}')
 DISK_NAME=$(lsblk -no PKNAME "$LUKS_DEVICE" 2>/dev/null | head -1)
 PART_NUM=$(echo "$LUKS_DEVICE" | grep -oE '[0-9]+$')
 
