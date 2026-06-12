@@ -5,8 +5,8 @@
 # Safe resizing for LUKS-encrypted Btrfs partitions
 # ==========================================
 
-set -e  # Exit on any error
-trap cleanup EXIT  # Always cleanup on exit
+set -e
+trap cleanup EXIT
 
 # ==========================================
 # GLOBALS
@@ -15,27 +15,34 @@ TEMP_MNT="/mnt/btrfs_resize_tmp"
 MAPPER_PATH=""
 MAPPER_NAME=""
 ORIGINAL_LUKS_SIZE=""
+WORK_MNT=""        # mount point actually used for btrfs ops
+MOUNTED_BY_US=0    # 1 if we mounted it, 0 if it was already mounted
 
 # ==========================================
 # CLEANUP FUNCTION
+# Only unmounts if WE mounted it (i.e. the temp mount).
+# Never unmounts a pre-existing user mount.
 # ==========================================
 cleanup() {
-    if mountpoint -q "$TEMP_MNT" 2>/dev/null; then
+    if [[ $MOUNTED_BY_US -eq 1 ]] && mountpoint -q "$TEMP_MNT" 2>/dev/null; then
         umount "$TEMP_MNT" 2>/dev/null || true
     fi
-    rmdir "$TEMP_MNT" 2>/dev/null || true
+    # Only remove TEMP_MNT if we created it
+    if [[ $MOUNTED_BY_US -eq 1 ]] || [[ -d "$TEMP_MNT" && "$WORK_MNT" == "$TEMP_MNT" ]]; then
+        rmdir "$TEMP_MNT" 2>/dev/null || true
+    fi
 }
 
 # ==========================================
 # 1. ROOT & DEPENDENCY CHECK
 # ==========================================
 if [[ $EUID -ne 0 ]]; then
-   gum style --foreground 196 "Error: This script must be run as root."
-   exit 1
+    gum style --foreground 196 "Error: This script must be run as root."
+    exit 1
 fi
 
 for cmd in gum btrfs awk cryptsetup dmsetup parted lsblk; do
-    if ! command -v $cmd &> /dev/null; then
+    if ! command -v "$cmd" &> /dev/null; then
         echo "Error: '$cmd' is not installed. Please install it."
         exit 1
     fi
@@ -50,7 +57,7 @@ gum style --border double --margin "1" --padding "1 2" --border-foreground 212 \
     "⚠️  IMPORTANT: Before proceeding:" \
     "   • Backup your data first!" \
     "   • Close all applications using this partition" \
-    "   • This will temporarily unmount the filesystem"
+    "   • The filesystem will be unmounted only for the LUKS resize step"
 
 echo ""
 echo "Select the active LUKS partition to shrink:"
@@ -84,17 +91,22 @@ if [[ "$FS_TYPE" != "btrfs" ]]; then
 fi
 
 # ==========================================
-# 4. CHECK IF MOUNTED & GET CURRENT SIZE
+# 4. RESOLVE MOUNT POINT
+# If already mounted, use that mount point directly.
+# Otherwise mount it ourselves to a temp directory.
 # ==========================================
-CURRENTLY_MOUNTED=$(findmnt -n -o TARGET "$MAPPER_PATH" 2>/dev/null || echo "")
+CURRENTLY_MOUNTED=$(findmnt -n -o TARGET "$MAPPER_PATH" 2>/dev/null || true)
 
 if [[ -n "$CURRENTLY_MOUNTED" ]]; then
-    gum style --foreground 208 "Warning: $MAPPER_PATH is currently mounted at: $CURRENTLY_MOUNTED"
-    if ! gum confirm "Unmount and continue?"; then
-        echo "Aborted."
-        exit 1
-    fi
-    umount "$CURRENTLY_MOUNTED"
+    gum style --foreground 82 "Using existing mount at: $CURRENTLY_MOUNTED"
+    WORK_MNT="$CURRENTLY_MOUNTED"
+    MOUNTED_BY_US=0
+else
+    gum style --foreground 117 "$MAPPER_PATH is not mounted -- mounting temporarily to $TEMP_MNT"
+    mkdir -p "$TEMP_MNT"
+    mount "$MAPPER_PATH" "$TEMP_MNT"
+    WORK_MNT="$TEMP_MNT"
+    MOUNTED_BY_US=1
 fi
 
 # Get current LUKS size
@@ -102,24 +114,19 @@ ORIGINAL_LUKS_SIZE=$(cryptsetup status "$MAPPER_NAME" | grep "size:" | awk '{pri
 CURRENT_GIB=$(awk "BEGIN {printf \"%.1f\", $ORIGINAL_LUKS_SIZE / 2 / 1024 / 1024}")
 
 # ==========================================
-# 5. MOUNT & ANALYZE SPACE
+# 5. ANALYZE SPACE
 # ==========================================
-mkdir -p "$TEMP_MNT"
-mount "$MAPPER_PATH" "$TEMP_MNT"
-
 gum spin --spinner dot --title "Analyzing filesystem usage..." -- sleep 1
 
-# Get actual used space
-USED_BYTES=$(btrfs filesystem usage -b "$TEMP_MNT" 2>/dev/null | grep "^[[:space:]]*Used:" | head -1 | awk '{print $2}' || echo "0")
+USED_BYTES=$(btrfs filesystem usage -b "$WORK_MNT" 2>/dev/null | grep "^[[:space:]]*Used:" | head -1 | awk '{print $2}' || echo "0")
 
 if [[ "$USED_BYTES" == "0" ]]; then
-    # Fallback method
-    USED_BYTES=$(btrfs filesystem df -b "$TEMP_MNT" | grep "Data" | awk '{print $3}' | tr -d ',')
+    # btrfs filesystem df -b outputs: "Data, single: total=Xb, used=Yb"
+    # extract the used= field, not total=
+    USED_BYTES=$(btrfs filesystem df -b "$WORK_MNT" | grep "^Data" | grep -oP 'used=\K[0-9]+')
 fi
 
 USED_GIB=$(awk "BEGIN {printf \"%.2f\", $USED_BYTES / 1024 / 1024 / 1024}")
-
-# Calculate safe minimum (used space + 20% for metadata/overhead)
 SAFE_MINIMUM=$(awk "BEGIN {printf \"%.0f\", ($USED_BYTES * 1.2) / 1024 / 1024 / 1024}")
 
 # ==========================================
@@ -131,6 +138,7 @@ gum style \
     "📊 Current Filesystem Info" \
     "" \
     "Device: $MAPPER_PATH" \
+    "Mount: $WORK_MNT" \
     "Current Size: ${CURRENT_GIB} GiB" \
     "Used Space: ${USED_GIB} GiB" \
     "Minimum Safe Size: ${SAFE_MINIMUM} GiB (includes 20% overhead)"
@@ -144,7 +152,6 @@ echo "Must be at least ${SAFE_MINIMUM} GiB"
 
 TARGET_GIB=$(gum input --placeholder "e.g., $SAFE_MINIMUM" --width 15)
 
-# Validate input
 if ! [[ "$TARGET_GIB" =~ ^[0-9]+$ ]]; then
     gum style --foreground 196 "Invalid number. Exiting."
     exit 1
@@ -157,7 +164,8 @@ if [[ $TARGET_GIB -lt $SAFE_MINIMUM ]]; then
     exit 1
 fi
 
-if [[ $TARGET_GIB -ge ${CURRENT_GIB%.*} ]]; then
+# Use awk for float-safe comparison: error if TARGET_GIB >= CURRENT_GIB
+if awk "BEGIN {exit !($TARGET_GIB >= $CURRENT_GIB)}"; then
     gum style --foreground 196 "Error: Target size must be SMALLER than current size (${CURRENT_GIB} GiB)"
     exit 1
 fi
@@ -169,7 +177,6 @@ LUKS_DEVICE=$(cryptsetup status "$MAPPER_NAME" | grep "device:" | awk '{print $2
 DISK_NAME=$(lsblk -no PKNAME "$LUKS_DEVICE" 2>/dev/null | head -1)
 PART_NUM=$(echo "$LUKS_DEVICE" | grep -oE '[0-9]+$')
 
-# Calculate physical partition size (add 512MB for LUKS header overhead)
 PHYSICAL_SIZE_GIB=$(awk "BEGIN {printf \"%.1f\", $TARGET_GIB + 0.5}")
 
 # ==========================================
@@ -189,9 +196,10 @@ gum style \
     "Physical Partition: ${PHYSICAL_SIZE_GIB} GiB" \
     "" \
     "OPERATIONS TO BE PERFORMED:" \
-    "1. Shrink Btrfs filesystem to ${TARGET_GIB}G" \
-    "2. Shrink LUKS container to match" \
-    "3. YOU must then run:" \
+    "1. Shrink Btrfs filesystem to ${TARGET_GIB}G  (live, no unmount)" \
+    "2. Unmount the filesystem" \
+    "3. Shrink LUKS container to match" \
+    "4. YOU must then run:" \
     "   parted /dev/${DISK_NAME} resizepart ${PART_NUM} ${PHYSICAL_SIZE_GIB}GiB" \
     "" \
     "⚠️  THIS CANNOT BE EASILY UNDONE!"
@@ -211,32 +219,30 @@ TARGET_SECTORS=$(($TARGET_BYTES / 512))
 echo ""
 gum style --foreground 226 "Starting resize operations..."
 
-# Step A: Resize Btrfs (while mounted)
+# Step A: Resize Btrfs while still mounted (this is safe and supported)
 echo ""
-gum spin --spinner minidot --title "Shrinking Btrfs filesystem to ${TARGET_GIB}G..." -- \
-    btrfs filesystem resize "${TARGET_GIB}G" "$TEMP_MNT"
-
-if [[ $? -ne 0 ]]; then
+gum style --foreground 117 "Shrinking Btrfs filesystem to ${TARGET_GIB}G..."
+if ! btrfs filesystem resize "${TARGET_GIB}G" "$WORK_MNT"; then
     gum style --foreground 196 "❌ Btrfs resize failed!"
-    echo "Your data is safe, but the resize did not complete."
+    echo "Your data is safe -- the filesystem was not modified."
     exit 1
 fi
 
-# Step B: Unmount
-gum spin --spinner dot --title "Unmounting filesystem..." -- \
-    umount "$TEMP_MNT"
-
-if mountpoint -q "$TEMP_MNT" 2>/dev/null; then
-    gum style --foreground 196 "❌ Failed to unmount! Cannot proceed."
+# Step B: Unmount (required before cryptsetup resize)
+gum style --foreground 117 "Unmounting filesystem..."
+if ! umount "$WORK_MNT"; then
+    gum style --foreground 196 "❌ Failed to unmount $WORK_MNT! Cannot proceed."
+    echo "Close any processes using the filesystem and retry."
     exit 1
 fi
 
-# Step C: Resize LUKS
+# Mark unmount complete AFTER confirming success
+MOUNTED_BY_US=0
+
+# Step C: Resize LUKS container
 echo ""
-gum spin --spinner points --title "Shrinking LUKS container..." -- \
-    cryptsetup resize --size "$TARGET_SECTORS" "$MAPPER_NAME"
-
-if [[ $? -ne 0 ]]; then
+gum style --foreground 117 "Shrinking LUKS container..."
+if ! cryptsetup resize --size "$TARGET_SECTORS" "$MAPPER_NAME"; then
     gum style --foreground 196 "❌ CRITICAL: LUKS resize failed!"
     echo "Btrfs was resized but LUKS was not."
     echo "DO NOT resize the physical partition yet!"
