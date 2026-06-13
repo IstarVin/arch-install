@@ -1,7 +1,5 @@
 #!/usr/bin/bash
 
-set -euo pipefail
-
 baseurl="https://arch-install.pages.dev"
 
 install_qemu() {
@@ -202,6 +200,7 @@ setup_tpm_luks() {
 
 	if [[ -z "${luks_source}" ]]; then
 		luks_source="$(findmnt -no SOURCE / 2>/dev/null)"
+		luks_source="${luks_source%%\[*}"
 	fi
 
 	if [[ -z "${luks_source}" ]]; then
@@ -227,8 +226,7 @@ setup_tpm_luks() {
 	fi
 
 	echo "Enrolling TPM2 unlock for ${luks_device} with PCRs ${pcrs}..."
-	if sudo systemd-cryptenroll --list-devices 2>/dev/null | grep -q "${luks_device}" || \
-		sudo cryptsetup luksDump "${luks_device}" 2>/dev/null | grep -q "systemd-tpm2"; then
+	if sudo cryptsetup luksDump "${luks_device}" 2>/dev/null | grep -q "systemd-tpm2"; then
 		echo "TPM2 slot already enrolled for ${luks_device}, skipping."
 	else
 		sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs="${pcrs}" "${luks_device}"
