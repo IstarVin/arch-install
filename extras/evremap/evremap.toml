@@ -1,4 +1,4 @@
-device_name = "ASUSTek Computer Inc. N-KEY Device Keyboard"
+device_name = "ASUSTek Computer Inc. N-KEY Device"
 
 [[remap]]
 input = ["KEY_LEFTCTRL", "KEY_H"]

@@ -35,7 +35,7 @@ misc() {
 
 	# Add Swapfile
 	btrfs subvolume create /swap
-	btrfs filesystem mkswapfile --size 50g --uuid clear /swap/swapfile
+	btrfs filesystem mkswapfile --size 10g --uuid clear /swap/swapfile
 	if [ $? -eq 0 ]; then
 		tee -a /etc/fstab > /dev/null <<-EOF
 			#Swap
