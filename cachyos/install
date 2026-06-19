@@ -167,7 +167,7 @@ fi
 pacstrap /mnt iptables-nft mkinitcpio
 pacstrap /mnt base linux-cachyos linux-cachyos-headers linux-firmware $ucode base-devel
 pacstrap /mnt cachyos-v3-mirrorlist cachyos-mirrorlist
-pacstrap /mnt git vim sudo efibootmgr networkmanager pacman-contrib \
+pacstrap /mnt git vim sudo wget curl efibootmgr networkmanager pacman-contrib \
 	wireplumber pipewire-audio pipewire-pulse pipewire-jack pipewire-alsa gst-plugin-pipewire \
 	linux-cachyos-nvidia scx-scheds yay kitty cachyos-rate-mirrors
 
@@ -195,10 +195,11 @@ echo "${username} ALL=(ALL) NOPASSWD: ALL" >/mnt/etc/sudoers.d/00_"${username}"
 arch-chroot /mnt bootctl install
 
 cat <<EOF >/mnt/boot/loader/loader.conf
-default  arch.conf
-timeout  0
+default  @saved
+timeout  3
 console-mode max
 editor   no
+auto-firmware 0
 EOF
 
 device_uuid=$(blkid | grep "${part_root}" | grep -oP ' UUID="\K[\w\d-]+')
@@ -207,7 +208,7 @@ cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
 linux   /vmlinuz-linux-cachyos
 initrd  /initramfs-linux-cachyos.img
-options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash pcie_aspm=off rw
+options cryptdevice=UUID=$device_uuid:root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash rw
 EOF
 
 # Setup mkinitcpio

@@ -66,15 +66,15 @@ clear
 sed -i 's/^#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
 sed -i 's/^#Color/Color/' /etc/pacman.conf
 
+## Configure Mirrors
+echo "Updating mirrors using reflector"
+execute_command reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
+
 ## Setup pacman
 pacman-key --init
 pacman-key --populate
 
 pacman -Sy archlinux-keyring gum --noconfirm --needed
-
-## Configure Mirrors
-echo "Updating mirrors using reflector"
-execute_command reflector -a 48 -c JP -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
 ## Setup disk
 setup_disk() {
@@ -167,23 +167,17 @@ echo "${username} ALL=(ALL) NOPASSWD: ALL" >/mnt/etc/sudoers.d/00_"${username}"
 arch-chroot /mnt bootctl install
 
 cat <<EOF >/mnt/boot/loader/loader.conf
-default  arch.conf
-timeout  0
+default  @saved
+timeout  3
 console-mode max
 editor   no
+auto-firmware 0
 EOF
 
 device_uuid=$(blkid | grep "${part_root}" | grep -oP ' UUID="\K[\w\d-]+')
 
 cat <<EOF >/mnt/boot/loader/entries/arch.conf
 title   Arch Linux
-linux   /vmlinuz-linux-zen
-initrd  /initramfs-linux-zen.img
-options rd.luks.name=$device_uuid=root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash pcie_aspm=off rw
-EOF
-
-cat <<EOF >/mnt/boot/loader/entries/arch-powersave.conf
-title   Arch Linux Powersave
 linux   /vmlinuz-linux-zen
 initrd  /initramfs-linux-zen.img
 options rd.luks.name=$device_uuid=root root=/dev/mapper/root rootfstype=btrfs rootflags=subvol=@ quiet splash rw
