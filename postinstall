@@ -129,6 +129,18 @@ ufw_setup() {
 	sudo ufw enable
 }
 
+networkmanager_iwd_setup() {
+	_install iwd
+
+	sudo mkdir -p /etc/NetworkManager/conf.d
+	sudo tee /etc/NetworkManager/conf.d/wifi_backend.conf >/dev/null <<-EOF
+		[device]
+		wifi.backend=iwd
+	EOF
+
+	sudo systemctl restart NetworkManager.service
+}
+
 ctf_setup() {
 	_install ruby
 	sudo gem install zsteg
@@ -158,6 +170,7 @@ main() {
 	execute_command install_deps
 	execute_command aj_disk
 	execute_command rog_setup
+	execute_command networkmanager_iwd_setup
 	execute_command ufw_setup
 	execute_command docker_setup
 	execute_command misc
@@ -166,4 +179,3 @@ main() {
 if [[ " $* " != *" -s "* ]]; then
 	main
 fi
-
