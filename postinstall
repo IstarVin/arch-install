@@ -50,6 +50,9 @@ aj_disk() {
 
 		ln -sf /mnt/AJ/.ssh/ $HOME
 
+		mkdir -p ~/.android
+		cp -r /mnt/AJ/.android/* ~/.android
+
 		mkdir -p ~/.hehe
 		mkdir -p ~/.secrets
 	fi
@@ -57,9 +60,10 @@ aj_disk() {
 
 evremap_install() {
 	_install evremap
-	curl -s "$baseurl/extras/evremap/evremap.service" | sudo tee /etc/systemd/user/evremap.service
-	curl -s "$baseurl/extras/evremap/evremap.toml" | sudo tee /etc/evremap.toml
-	sudo systemctl enable --now evremap
+	curl -s "$baseurl/extras/evremap/evremap.service" | sudo tee /etc/systemd/user/evremap@.service
+	curl -s "$baseurl/extras/evremap/rog.toml" | sudo tee /etc/evremap/rog.toml
+	systemctl --user daemon-reload
+	systemctl --user enable --now evremap@rog
 }
 
 rog_install() {
@@ -81,9 +85,9 @@ rog_install() {
 
 	sudo pacman -Syu --noconfirm
 
-	_install g14/asusctl power-profiles-daemon switcheroo-control
+	_install g14/asusctl power-profiles-daemon
 
-	sudo systemctl enable --now power-profiles-daemon switcheroo-control
+	sudo systemctl enable --now power-profiles-daemon
 
 	# sudo sed -i 's/"no_logind": false/"no_logind": true/' /etc/supergfxd.conf
 	# sudo sed -i 's/"vfio_enable": false/"vfio_enable": true/' /etc/supergfxd.conf

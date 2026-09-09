@@ -1,7 +1,6 @@
 [Service]
-ExecStart=bash -c "/usr/bin/evremap remap /etc/evremap.toml -d 0"
+ExecStart=bash -c "/usr/bin/evremap remap /etc/evremap/%I.toml -d 0"
 Restart=always
 
 [Install]
-WantedBy=multi-user.target
-
+WantedBy=default.target
