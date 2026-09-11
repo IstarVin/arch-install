@@ -48,7 +48,7 @@ setup_vm() {
 	yay -S --needed --noconfirm looking-glass looking-glass-module-dkms
 	sudo mkdir -p /etc/libvirt/hooks/qemu.d
 	if [[ ! -f /etc/libvirt/hooks/qemu ]]; then
-		sudo wget "${vmhooks}/qemu" -O /etc/libvirt/hooks/qemu
+		sudo wget "${baseurl}/extras/vm/qemu" -O /etc/libvirt/hooks/qemu
 		sudo chmod +x /etc/libvirt/hooks/qemu
 	fi
 
