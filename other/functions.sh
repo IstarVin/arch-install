@@ -48,7 +48,7 @@ setup_vm() {
 	yay -S --needed --noconfirm looking-glass looking-glass-module-dkms
 	sudo mkdir -p /etc/libvirt/hooks/qemu.d
 	if [[ ! -f /etc/libvirt/hooks/qemu ]]; then
-		sudo wget 'https://asus-linux.org/files/vfio/libvirt_hooks/qemu' -O /etc/libvirt/hooks/qemu
+		sudo wget "${vmhooks}/qemu" -O /etc/libvirt/hooks/qemu
 		sudo chmod +x /etc/libvirt/hooks/qemu
 	fi
 
@@ -58,8 +58,8 @@ setup_vm() {
 	sudo mkdir -p "${hooks_dir}/release/end"
 
 	local files=("vm-vars.conf" \
-				"prepare/begin/10-asusd-vfio.sh" "prepare/begin/20-reserve-hugepages.sh" "prepare/begin/40-isolate-cpus.sh" \
-				"release/end/10-release-hugepages.sh" "release/end/20-return-cpus.sh" "release/end/40-asusd-integrated.sh" \
+				"prepare/begin/20-reserve-hugepages.sh" "prepare/begin/40-isolate-cpus.sh" \
+				"release/end/10-release-hugepages.sh" "release/end/20-return-cpus.sh" \
 				"release/end/60-kill-looking-glass.sh")
 
 	for file in "${files[@]}"; do
